@@ -1,11 +1,8 @@
 <script lang="ts">
-	import { setupAppConvex } from '$lib/backend/convex/setup.svelte';
 	import '../app.css';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
-
-	setupAppConvex();
 </script>
 
 <svelte:head>

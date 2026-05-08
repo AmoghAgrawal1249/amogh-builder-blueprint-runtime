@@ -1,14 +1,7 @@
-<script lang="ts">
-	import BuilderCanvas from '$lib/features/builder/canvas/BuilderCanvas.svelte';
-	import BuilderDesktopOnly from '$lib/features/builder/canvas/BuilderDesktopOnly.svelte';
-	import { toBuilderAppRecord, toBuilderGuideDefinition } from '$lib/features/builder/data';
-	import type { PageProps } from './$types';
+<svelte:head>
+	<title>Bring the Firm Runtime</title>
+</svelte:head>
 
-	let { data }: PageProps = $props();
-	const app = $derived(toBuilderAppRecord(data.app));
-	const guide = $derived(toBuilderGuideDefinition(data.guide));
-</script>
-
-<BuilderDesktopOnly>
-	<BuilderCanvas {app} {guide} />
-</BuilderDesktopOnly>
+<main class="p-4 text-sm text-zinc-700">
+	Bring the Firm is running
+</main>

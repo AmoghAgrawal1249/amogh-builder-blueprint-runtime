@@ -7,7 +7,8 @@ const config = {
 			runtime: 'nodejs20.x'
 		}),
 		alias: {
-			$convex: 'src/convex',
+			$blueprint: 'src/blueprint',
+			$devHarness: 'src/dev-harness',
 			$runtime: 'src/runtime'
 		}
 	},

@@ -1,61 +1,8 @@
 @import "tailwindcss";
 
-@theme inline {
-	--color-background: var(--background);
-	--color-foreground: var(--foreground);
-	--color-card: var(--card);
-	--color-card-foreground: var(--card-foreground);
-	--color-popover: var(--popover);
-	--color-popover-foreground: var(--popover-foreground);
-	--color-primary: var(--primary);
-	--color-primary-foreground: var(--primary-foreground);
-	--color-secondary: var(--secondary);
-	--color-secondary-foreground: var(--secondary-foreground);
-	--color-muted: var(--muted);
-	--color-muted-foreground: var(--muted-foreground);
-	--color-accent: var(--accent);
-	--color-accent-foreground: var(--accent-foreground);
-	--color-border: var(--border);
-	--color-input: var(--input);
-	--color-ring: var(--ring);
-	--radius-sm: calc(var(--radius) - 4px);
-	--radius-md: calc(var(--radius) - 2px);
-	--radius-lg: var(--radius);
-	--radius-xl: calc(var(--radius) + 4px);
-}
-
 :root {
-	--font-geist-sans: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-	--font-geist-mono: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
-	--radius: 0.75rem;
-	--background: #f3f3f2;
-	--foreground: #18181b;
-	--card: #ffffff;
-	--card-foreground: #18181b;
-	--popover: #ffffff;
-	--popover-foreground: #18181b;
-	--primary: #18181b;
-	--primary-foreground: #fafafa;
-	--secondary: #efefef;
-	--secondary-foreground: #18181b;
-	--muted: #efefef;
-	--muted-foreground: #6e6e75;
-	--accent: #ededed;
-	--accent-foreground: #18181b;
-	--border: #e5e5e5;
-	--input: #e5e5e5;
-	--ring: #d4d4d8;
-	--surface-bg: #f3f3f2;
-	--panel-bg: #ffffff;
-	--panel-border: #e5e5e5;
-	--shell-gutter-mobile: 0.75rem;
-	--dashboard-sidebar-width: 2.75rem;
-	--dashboard-sidebar-pad-left: 0.125rem;
-	--dashboard-sidebar-pad-right: 0rem;
-	--dashboard-surface-gap: 0rem;
-	--layer-base: 0;
-	--layer-shell: 10;
-	--layer-drawer: 50;
+	--font-sans: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+	--font-mono: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
 }
 
 html,
@@ -65,69 +12,39 @@ body,
 }
 
 body {
-	background: var(--surface-bg);
-	color: var(--foreground);
-	font-family: var(--font-geist-sans), sans-serif;
+	margin: 0;
+	background: #f4f4f5;
+	color: #18181b;
+	font-family: var(--font-sans);
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 	overflow: hidden;
 }
 
 #app-root {
-	position: relative;
-	z-index: var(--layer-base);
 	min-height: 100%;
 }
 
-@layer base {
-	a {
-		color: inherit;
-	}
+button,
+input,
+textarea {
+	font: inherit;
 }
 
 button {
 	cursor: pointer;
 }
 
-.dashboard-surface {
-	padding: 0;
+button:disabled {
+	cursor: not-allowed;
 }
 
-@media (min-width: 768px) {
-	.dashboard-surface {
-		padding: 0.25rem 0.25rem 0.25rem 0.8rem;
-	}
-
-	.dashboard-surface[data-sidebar-state="expanded"] {
-		padding-left: 0.7rem;
-		--dashboard-sidebar-width: 14rem;
-		--dashboard-sidebar-pad-left: 0.5rem;
-		--dashboard-sidebar-pad-right: 0.5rem;
-		--dashboard-surface-gap: 0.7rem;
-	}
+code,
+pre,
+textarea {
+	font-family: var(--font-mono);
 }
 
-.sidebar-nav-indicator {
-	top: var(--sidebar-nav-indicator-top, 0);
-	left: var(--sidebar-nav-indicator-left, 0);
-	width: var(--sidebar-nav-indicator-width, 0);
-	height: var(--sidebar-nav-indicator-height, 0);
-	opacity: var(--sidebar-nav-indicator-opacity, 0);
-}
-
-.dashboard-main-viewport {
-	position: relative;
-	container-type: size;
-}
-
-.app-layer-base {
-	z-index: var(--layer-base);
-}
-
-.app-layer-shell {
-	z-index: var(--layer-shell);
-}
-
-.app-layer-drawer {
-	z-index: var(--layer-drawer);
+a {
+	color: inherit;
 }

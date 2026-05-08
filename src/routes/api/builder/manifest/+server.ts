@@ -1,8 +1,8 @@
 import { json } from '@sveltejs/kit';
-import { bringTheFirmManifest } from '$runtime/builder-runtime';
+import { runtime } from '$runtime/operations';
 
 export const GET = () => {
 	return json({
-		manifest: bringTheFirmManifest
+		manifest: runtime.manifest
 	});
 };

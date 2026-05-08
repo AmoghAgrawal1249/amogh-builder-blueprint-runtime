@@ -73,7 +73,7 @@ export type BuilderAppRuntime = {
 	manifest: BuilderAppManifest;
 	startTurn: (input: BuilderAppStartTurnInput) => Promise<BuilderAppOutputEvent[]>;
 	continueTurn: (input: BuilderAppContinueTurnInput) => Promise<BuilderAppOutputEvent[]>;
-	runBackgroundJob?: (input: BuilderAppBackgroundJobInput) => Promise<BuilderAppOutputEvent[]>;
+	backgroundJob?: (input: BuilderAppBackgroundJobInput) => Promise<BuilderAppOutputEvent[]>;
 };
 
 export type EmailAppDefinition = GuidedEmailAppCatalogDefinition & {
