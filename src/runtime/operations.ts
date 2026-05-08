@@ -1,4 +1,14 @@
-import { bringTheFirmApp, bringTheFirmCatalog } from '$blueprint';
+import {
+	adaptBringTheFirmExample,
+	applyBringTheFirmInitialAnswer,
+	bringTheFirmManifest,
+	getBringTheFirmExamples,
+	listBringTheFirmDraftExamples,
+	listBringTheFirmExamples,
+	routeBringTheFirmBuilderRequest,
+	streamBringTheFirmBuilderTurn,
+	streamBringTheFirmInitialQuestion
+} from '$blueprint';
 import type {
 	BuilderAppBackgroundJobInput,
 	BuilderAppContinueTurnInput,
@@ -6,9 +16,28 @@ import type {
 	BuilderAppStartTurnInput,
 	BuilderAppState
 } from '@overbase/builder-sdk/app-protocol';
-import type { EmailDraftPatch } from '@overbase/builder-sdk/email';
+import type { EmailDraft, EmailDraftPatch } from '@overbase/builder-sdk/email';
 
 type EmitEvent = (event: BuilderAppOutputEvent) => Promise<void> | void;
+
+type BringTheFirmAppState = {
+	selectedExamplesSlug?: string;
+	selectedExampleSlug?: string;
+	initialQuestionText?: string;
+};
+
+type BuilderAppInitialQuestionExample = {
+	slug: string;
+	description: string;
+	questionGuidance: string;
+};
+
+type BuilderAppDraftExample = {
+	slug: string;
+	description: string;
+	matchSignals: string[];
+	emailDraft: EmailDraft;
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -20,10 +49,40 @@ function getStringField(value: Record<string, unknown>, field: string) {
 	return typeof fieldValue === 'string' ? fieldValue : undefined;
 }
 
-function getInitialQuestionText(appState?: BuilderAppState) {
+function getBringTheFirmAppState(appState?: BuilderAppState): BringTheFirmAppState {
 	const value = isRecord(appState?.value) ? appState.value : {};
 
-	return getStringField(value, 'initialQuestionText') ?? '';
+	return {
+		selectedExamplesSlug: getStringField(value, 'selectedExamplesSlug'),
+		selectedExampleSlug: getStringField(value, 'selectedExampleSlug'),
+		initialQuestionText: getStringField(value, 'initialQuestionText')
+	};
+}
+
+function toInitialQuestionExample(examples: {
+	slug: string;
+	description: string;
+	questionGuidance: string;
+}): BuilderAppInitialQuestionExample {
+	return {
+		slug: examples.slug,
+		description: examples.description,
+		questionGuidance: examples.questionGuidance
+	};
+}
+
+function toDraftExample(example: {
+	slug: string;
+	description: string;
+	matchSignals: string[];
+	emailDraft: EmailDraft;
+}): BuilderAppDraftExample {
+	return {
+		slug: example.slug,
+		description: example.description,
+		matchSignals: example.matchSignals,
+		emailDraft: example.emailDraft
+	};
 }
 
 function toAssistantPatchResultEvents(result: {
@@ -52,10 +111,24 @@ function toAssistantPatchResultEvents(result: {
 }
 
 export async function startTurn(input: BuilderAppStartTurnInput, emit?: EmitEvent) {
-	const questionText = await bringTheFirmApp.createInitialQuestion({
+	const examples = listBringTheFirmExamples().map(toInitialQuestionExample);
+
+	if (examples.length === 0) {
+		throw new Error('No Bring the firm examples are available.');
+	}
+
+	const routeResult = await routeBringTheFirmBuilderRequest({
 		initialMessage: input.initialMessage,
+		examples
+	});
+	const selectedExamples =
+		examples.find((candidate) => candidate.slug === routeResult.examplesSlug) ?? examples[0];
+	const questionText = await streamBringTheFirmInitialQuestion({
+		initialMessage: input.initialMessage,
+		examples: selectedExamples,
+		proposedQuestion: routeResult.question,
 		handlers: {
-			onAssistantDelta: async (delta) => {
+			onDelta: async (delta) => {
 				await emit?.({ type: 'assistantDelta', text: delta });
 				await input.handlers.onAssistantDelta?.(delta);
 			}
@@ -67,6 +140,7 @@ export async function startTurn(input: BuilderAppStartTurnInput, emit?: EmitEven
 		{
 			type: 'appStatePatch',
 			patch: {
+				selectedExamplesSlug: selectedExamples.slug,
 				initialQuestionText: questionText
 			}
 		},
@@ -78,9 +152,10 @@ export async function startTurn(input: BuilderAppStartTurnInput, emit?: EmitEven
 
 export async function continueTurn(input: BuilderAppContinueTurnInput, emit?: EmitEvent) {
 	if (!input.emailDraft && input.preparedEmailDraft) {
-		const emailDraft = await bringTheFirmApp.applyInitialAnswer({
+		const bringTheFirmState = getBringTheFirmAppState(input.appState);
+		const emailDraft = await applyBringTheFirmInitialAnswer({
 			initialMessage: input.initialMessage,
-			initialQuestion: getInitialQuestionText(input.appState),
+			initialQuestion: bringTheFirmState.initialQuestionText ?? '',
 			initialAnswer: input.userMessage,
 			draft: input.preparedEmailDraft
 		});
@@ -99,7 +174,7 @@ export async function continueTurn(input: BuilderAppContinueTurnInput, emit?: Em
 		throw new Error('The visible email draft is unavailable.');
 	}
 
-	const result = await bringTheFirmApp.streamRefinementTurn({
+	const result = await streamBringTheFirmBuilderTurn({
 		transcript: input.transcript,
 		draft: input.emailDraft,
 		recentEvents: input.recentEvents,
@@ -115,22 +190,49 @@ export async function continueTurn(input: BuilderAppContinueTurnInput, emit?: Em
 }
 
 export async function backgroundJob(input: BuilderAppBackgroundJobInput) {
-	const emailDraft = await bringTheFirmApp.createInitialDraft({
-		initialMessage: input.initialMessage
+	const bringTheFirmState = getBringTheFirmAppState(input.appState);
+	const selectedExamplesSlug = bringTheFirmState.selectedExamplesSlug;
+
+	if (!selectedExamplesSlug) {
+		throw new Error('The selected examples are unavailable.');
+	}
+
+	const examples = getBringTheFirmExamples(selectedExamplesSlug);
+
+	if (!examples) {
+		throw new Error('The selected examples are unavailable.');
+	}
+
+	const draftExamples = listBringTheFirmDraftExamples(selectedExamplesSlug).map(toDraftExample);
+
+	if (draftExamples.length === 0) {
+		throw new Error('No Bring the firm draft examples are available for these examples.');
+	}
+
+	const adapted = await adaptBringTheFirmExample({
+		initialMessage: input.initialMessage,
+		examples: toInitialQuestionExample(examples),
+		draftExamples
 	});
 
 	return [
 		{
 			type: 'emailDraftReplace',
-			emailDraft,
+			emailDraft: adapted.emailDraft,
 			visible: false
+		},
+		{
+			type: 'appStatePatch',
+			patch: {
+				selectedExampleSlug: adapted.exampleSlug
+			}
 		},
 		{ type: 'complete' }
 	] satisfies BuilderAppOutputEvent[];
 }
 
 export const runtime = {
-	manifest: bringTheFirmCatalog,
+	manifest: bringTheFirmManifest,
 	startTurn,
 	continueTurn,
 	backgroundJob

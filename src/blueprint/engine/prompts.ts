@@ -1,16 +1,17 @@
 import type { EmailDraft } from '@overbase/builder-sdk/email';
 import {
-	buildGuidedEmailInitialAnswerPrompt,
-	buildGuidedEmailInitialQuestionPrompt
-} from '../guided-email-workflow';
-import { bringTheFirmExamples } from '../examples';
-import {
-	bringTheFirmGuide,
-	BRING_THE_FIRM_DRAFT_RULES,
-	BRING_THE_FIRM_REFINEMENT_RULES,
+	BRING_THE_FIRM_EXAMPLE_ADAPTATION_DRAFT_RULES,
+	BRING_THE_FIRM_EXAMPLE_ADAPTATION_OPENING_RULES,
+	BRING_THE_FIRM_INITIAL_ANSWER_DRAFT_RULES,
+	BRING_THE_FIRM_INITIAL_ANSWER_OPENING_RULES,
+	BRING_THE_FIRM_INITIAL_QUESTION_RULES,
+	BRING_THE_FIRM_REFINEMENT_CHAT_RULES,
+	BRING_THE_FIRM_REFINEMENT_DRAFT_RULES,
+	BRING_THE_FIRM_ROUTING_RULES,
 	EXAMPLE_FIDELITY_RULES,
 	EXECUTIVE_WRITING_RULES
 } from '../rules';
+import type { BringTheFirmExampleCandidate, BringTheFirmExamplesCandidate } from '../types';
 
 function stringifyPromptData(value: unknown) {
 	return JSON.stringify(value, null, 2);
@@ -20,31 +21,57 @@ function joinPromptLines(lines: readonly string[]) {
 	return lines.join('\n');
 }
 
-export function buildBringTheFirmInitialDraftPrompt(params: { initialMessage: string }) {
+export function buildBringTheFirmRoutingPrompt(params: {
+	initialMessage: string;
+	examples: BringTheFirmExamplesCandidate[];
+}) {
 	return {
-		systemPrompt: joinPromptLines([
-			...BRING_THE_FIRM_DRAFT_RULES,
-			EXECUTIVE_WRITING_RULES,
-			EXAMPLE_FIDELITY_RULES
-		]),
+		systemPrompt: joinPromptLines(BRING_THE_FIRM_ROUTING_RULES),
 		userPrompt: [
-			'Builder app: Bring the firm',
-			'Guided questions:',
-			stringifyPromptData(bringTheFirmGuide.questions),
-			'User answers:',
+			'Guided setup answers:',
 			params.initialMessage,
-			'Example email drafts:',
-			stringifyPromptData(bringTheFirmExamples)
+			'Available examples:',
+			stringifyPromptData(params.examples)
 		].join('\n\n')
 	};
 }
 
-export function buildBringTheFirmInitialQuestionPrompt(params: { initialMessage: string }) {
-	return buildGuidedEmailInitialQuestionPrompt({
-		appTitle: 'Bring the firm',
-		initialMessage: params.initialMessage,
-		guideQuestions: bringTheFirmGuide.questions
-	});
+export function buildBringTheFirmInitialQuestionPrompt(params: {
+	initialMessage: string;
+	examples: BringTheFirmExamplesCandidate;
+	proposedQuestion: string;
+}) {
+	return {
+		systemPrompt: joinPromptLines(BRING_THE_FIRM_INITIAL_QUESTION_RULES),
+		userPrompt: [
+			`Guided setup answers: ${params.initialMessage}`,
+			`Question guidance: ${params.examples.questionGuidance}`,
+			`Proposed question: ${params.proposedQuestion}`
+		].join('\n')
+	};
+}
+
+export function buildBringTheFirmExampleAdaptationPrompt(params: {
+	initialMessage: string;
+	examples: BringTheFirmExamplesCandidate;
+	draftExamples: BringTheFirmExampleCandidate[];
+}) {
+	return {
+		systemPrompt: joinPromptLines([
+			...BRING_THE_FIRM_EXAMPLE_ADAPTATION_OPENING_RULES,
+			EXECUTIVE_WRITING_RULES,
+			EXAMPLE_FIDELITY_RULES,
+			...BRING_THE_FIRM_EXAMPLE_ADAPTATION_DRAFT_RULES
+		]),
+		userPrompt: [
+			'Guided setup answers:',
+			params.initialMessage,
+			'Selected examples:',
+			stringifyPromptData(params.examples),
+			'Candidate email examples:',
+			stringifyPromptData(params.draftExamples)
+		].join('\n\n')
+	};
 }
 
 export function buildBringTheFirmInitialAnswerPrompt(params: {
@@ -53,25 +80,45 @@ export function buildBringTheFirmInitialAnswerPrompt(params: {
 	initialAnswer: string;
 	draft: EmailDraft;
 }) {
-	return buildGuidedEmailInitialAnswerPrompt({
-		appTitle: 'Bring the firm',
-		initialMessage: params.initialMessage,
-		initialQuestion: params.initialQuestion,
-		initialAnswer: params.initialAnswer,
-		draft: params.draft,
-		guideQuestions: bringTheFirmGuide.questions,
-		draftRules: [
-			...BRING_THE_FIRM_DRAFT_RULES,
+	return {
+		systemPrompt: joinPromptLines([
+			...BRING_THE_FIRM_INITIAL_ANSWER_OPENING_RULES,
 			EXECUTIVE_WRITING_RULES,
-			EXAMPLE_FIDELITY_RULES
-		]
-	});
+			EXAMPLE_FIDELITY_RULES,
+			...BRING_THE_FIRM_INITIAL_ANSWER_DRAFT_RULES
+		]),
+		userPrompt: [
+			'Guided setup answers:',
+			params.initialMessage,
+			'Follow-up question:',
+			params.initialQuestion,
+			'User answer:',
+			params.initialAnswer,
+			'Hidden draft JSON:',
+			stringifyPromptData(params.draft)
+		].join('\n\n')
+	};
 }
 
 export function buildBringTheFirmRefinementSystemPrompt() {
 	return joinPromptLines([
-		...BRING_THE_FIRM_REFINEMENT_RULES,
+		...BRING_THE_FIRM_REFINEMENT_CHAT_RULES,
 		EXECUTIVE_WRITING_RULES,
+		...BRING_THE_FIRM_REFINEMENT_DRAFT_RULES,
 		EXAMPLE_FIDELITY_RULES
 	]);
+}
+
+export function buildBringTheFirmRefinementUserPrompt(params: {
+	draft: EmailDraft;
+	recentEvents: unknown[];
+}) {
+	return [
+		'Current visible email draft JSON:',
+		JSON.stringify(params.draft),
+		params.recentEvents.length > 0
+			? ['Recent email draft events:', JSON.stringify(params.recentEvents)].join('\n')
+			: 'Recent email draft events: []',
+		'Respond to the user in normal text. If the draft should change, call update_email_draft.'
+	].join('\n');
 }

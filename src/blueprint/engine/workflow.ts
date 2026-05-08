@@ -1,54 +1,249 @@
 import {
-	applyGuidedEmailInitialAnswer,
-	createGuidedEmailInitialDraft,
-	streamGuidedEmailInitialQuestion,
-	streamGuidedEmailRefinementTurn
-} from '../guided-email-workflow';
-import type {
-	BringTheFirmInitialAnswerParams,
-	BringTheFirmInitialDraftParams,
-	BringTheFirmInitialQuestionParams,
-	BringTheFirmRefinementParams
-} from './types';
+	applyEmailDraftPatch,
+	emailDraftJsonSchema,
+	emailDraftPatchJsonSchema,
+	normalizeEmailDraft,
+	type EmailDraft
+} from '@overbase/builder-sdk/email';
 import {
+	callStructuredTool,
+	getOpenAIConfig,
+	getOpenAIErrorMessage,
+	getOpenAIHeaders,
+	OPENAI_RESPONSES_URL,
+	STRUCTURED_MAX_OUTPUT_TOKENS,
+	supportsReasoningOptions
+} from '@overbase/builder-sdk/openai';
+import { readEmailBuilderTurnStream, readOpenAIStream } from '@overbase/builder-sdk/streams';
+import {
+	buildBringTheFirmExampleAdaptationPrompt,
 	buildBringTheFirmInitialAnswerPrompt,
-	buildBringTheFirmInitialDraftPrompt,
 	buildBringTheFirmInitialQuestionPrompt,
-	buildBringTheFirmRefinementSystemPrompt
+	buildBringTheFirmRefinementSystemPrompt,
+	buildBringTheFirmRefinementUserPrompt,
+	buildBringTheFirmRoutingPrompt
 } from './prompts';
+import type {
+	BringTheFirmAdaptedExampleResult,
+	BringTheFirmExampleCandidate,
+	BringTheFirmExamplesCandidate,
+	BringTheFirmRouteResult,
+	ChatReplyStreamHandlers,
+	EmailBuilderEventContext,
+	EmailBuilderTurnStreamHandlers,
+	EmailBuilderTurnStreamResult,
+	TranscriptMessage
+} from '../types';
 
-export async function createBringTheFirmInitialQuestion(params: BringTheFirmInitialQuestionParams) {
-	return await streamGuidedEmailInitialQuestion({
-		prompt: buildBringTheFirmInitialQuestionPrompt(params),
-		handlers: {
-			onDelta: async (delta) => {
-				await params.handlers.onAssistantDelta?.(delta);
-			}
+const INITIAL_QUESTION_MAX_OUTPUT_TOKENS = 300;
+const UPDATE_EMAIL_DRAFT_TOOL_NAME = 'update_email_draft';
+const BRING_THE_FIRM_ROUTE_TOOL_NAME = 'select_bring_the_firm_examples';
+const BRING_THE_FIRM_ADAPT_TOOL_NAME = 'adapt_bring_the_firm_example';
+const BRING_THE_FIRM_INITIAL_ANSWER_TOOL_NAME = 'apply_initial_bring_the_firm_answer';
+
+export async function routeBringTheFirmBuilderRequest(params: {
+	initialMessage: string;
+	examples: BringTheFirmExamplesCandidate[];
+}) {
+	const prompt = buildBringTheFirmRoutingPrompt(params);
+
+	return await callStructuredTool<BringTheFirmRouteResult>({
+		profile: 'fast',
+		systemPrompt: prompt.systemPrompt,
+		userPrompt: prompt.userPrompt,
+		toolName: BRING_THE_FIRM_ROUTE_TOOL_NAME,
+		toolDescription: 'Select the closest Bring the firm examples set and the first follow-up question.',
+		toolParameters: {
+			type: 'object',
+			additionalProperties: false,
+			properties: {
+				examplesSlug: {
+					type: 'string',
+					enum: params.examples.map((examplesSet) => examplesSet.slug)
+				},
+				question: {
+					type: 'string',
+					description: 'One concise question about the least certain important detail.'
+				}
+			},
+			required: ['examplesSlug', 'question']
 		}
 	});
 }
 
-export async function createBringTheFirmInitialDraft(params: BringTheFirmInitialDraftParams) {
-	return await createGuidedEmailInitialDraft({
-		prompt: buildBringTheFirmInitialDraftPrompt(params),
-		toolName: 'bring_the_firm_create_email_draft',
-		toolDescription: 'Create the Bring the firm email notification draft.'
+export async function streamBringTheFirmInitialQuestion(params: {
+	initialMessage: string;
+	examples: BringTheFirmExamplesCandidate;
+	proposedQuestion: string;
+	handlers: ChatReplyStreamHandlers;
+}) {
+	const { apiKey, model, reasoningEffort } = getOpenAIConfig('fast');
+	const prompt = buildBringTheFirmInitialQuestionPrompt(params);
+	const response = await fetch(OPENAI_RESPONSES_URL, {
+		method: 'POST',
+		headers: getOpenAIHeaders(apiKey),
+		body: JSON.stringify({
+			model,
+			input: [
+				{
+					role: 'system',
+					content: prompt.systemPrompt
+				},
+				{
+					role: 'user',
+					content: prompt.userPrompt
+				}
+			],
+			...(supportsReasoningOptions(model) ? { reasoning: { effort: reasoningEffort } } : {}),
+			max_output_tokens: INITIAL_QUESTION_MAX_OUTPUT_TOKENS,
+			store: false,
+			stream: true
+		})
 	});
+
+	if (!response.ok) {
+		throw new Error(await getOpenAIErrorMessage(response));
+	}
+
+	return await readOpenAIStream(response, params.handlers);
 }
 
-export async function applyBringTheFirmInitialAnswer(params: BringTheFirmInitialAnswerParams) {
-	return await applyGuidedEmailInitialAnswer({
-		prompt: buildBringTheFirmInitialAnswerPrompt(params),
-		toolDescription: 'Return the Bring the firm email notification draft after applying the first answer.'
+export async function adaptBringTheFirmExample(params: {
+	initialMessage: string;
+	examples: BringTheFirmExamplesCandidate;
+	draftExamples: BringTheFirmExampleCandidate[];
+}) {
+	const prompt = buildBringTheFirmExampleAdaptationPrompt(params);
+	const result = await callStructuredTool<BringTheFirmAdaptedExampleResult>({
+		systemPrompt: prompt.systemPrompt,
+		userPrompt: prompt.userPrompt,
+		toolName: BRING_THE_FIRM_ADAPT_TOOL_NAME,
+		toolDescription: 'Pick the closest Bring the firm example and return the adapted email draft.',
+		toolParameters: {
+			type: 'object',
+			additionalProperties: false,
+			properties: {
+				exampleSlug: {
+					type: 'string',
+					enum: params.draftExamples.map((example) => example.slug)
+				},
+				emailDraft: emailDraftJsonSchema
+			},
+			required: ['exampleSlug', 'emailDraft']
+		}
 	});
+	const selectedExample =
+		params.draftExamples.find((example) => example.slug === result.exampleSlug) ??
+		params.draftExamples[0];
+
+	if (!selectedExample) {
+		throw new Error('No Bring the firm examples are available to adapt.');
+	}
+
+	return {
+		...result,
+		exampleSlug: selectedExample.slug,
+		emailDraft: normalizeEmailDraft(result.emailDraft)
+	};
 }
 
-export async function streamBringTheFirmRefinementTurn(params: BringTheFirmRefinementParams) {
-	return await streamGuidedEmailRefinementTurn({
-		systemPrompt: buildBringTheFirmRefinementSystemPrompt(),
+export async function applyBringTheFirmInitialAnswer(params: {
+	initialMessage: string;
+	initialQuestion: string;
+	initialAnswer: string;
+	draft: EmailDraft;
+}) {
+	const prompt = buildBringTheFirmInitialAnswerPrompt(params);
+	const result = await callStructuredTool<{ emailDraft: EmailDraft }>({
+		systemPrompt: prompt.systemPrompt,
+		userPrompt: prompt.userPrompt,
+		toolName: BRING_THE_FIRM_INITIAL_ANSWER_TOOL_NAME,
+		toolDescription: 'Return the hidden Bring the firm email draft after applying the initial answer.',
+		toolParameters: {
+			type: 'object',
+			additionalProperties: false,
+			properties: {
+				emailDraft: emailDraftJsonSchema
+			},
+			required: ['emailDraft']
+		}
+	});
+
+	return normalizeEmailDraft(result.emailDraft);
+}
+
+export async function streamBringTheFirmBuilderTurn(params: {
+	transcript: TranscriptMessage[];
+	draft: EmailDraft;
+	recentEvents: EmailBuilderEventContext[];
+	handlers: EmailBuilderTurnStreamHandlers;
+}): Promise<EmailBuilderTurnStreamResult> {
+	const { apiKey, model, reasoningEffort } = getOpenAIConfig();
+	const refinementSystemPrompt = buildBringTheFirmRefinementSystemPrompt();
+	const refinementUserPrompt = buildBringTheFirmRefinementUserPrompt({
 		draft: params.draft,
-		recentEvents: params.recentEvents,
-		transcript: params.transcript,
-		handlers: params.handlers
+		recentEvents: params.recentEvents
 	});
+	const response = await fetch(OPENAI_RESPONSES_URL, {
+		method: 'POST',
+		headers: getOpenAIHeaders(apiKey),
+		body: JSON.stringify({
+			model,
+			input: [
+				{
+					role: 'system',
+					content: refinementSystemPrompt
+				},
+				...params.transcript.map((message) => ({
+					role: message.role,
+					content: message.text
+				})),
+				{
+					role: 'user',
+					content: refinementUserPrompt
+				}
+			],
+			tools: [
+				{
+					type: 'function',
+					name: UPDATE_EMAIL_DRAFT_TOOL_NAME,
+					description: 'Patch the visible email notification draft.',
+					parameters: emailDraftPatchJsonSchema,
+					strict: true
+				}
+			],
+			parallel_tool_calls: false,
+			...(supportsReasoningOptions(model) ? { reasoning: { effort: reasoningEffort } } : {}),
+			max_output_tokens: STRUCTURED_MAX_OUTPUT_TOKENS,
+			store: false,
+			stream: true
+		})
+	});
+
+	if (!response.ok) {
+		throw new Error(await getOpenAIErrorMessage(response));
+	}
+
+	const result = await readEmailBuilderTurnStream(response, params.handlers);
+	const meaningfulOperations =
+		result.patch?.operations.filter((operation) => {
+			const nextDraft = applyEmailDraftPatch(params.draft, { operations: [operation] });
+			return JSON.stringify(nextDraft) !== JSON.stringify(normalizeEmailDraft(params.draft));
+		}) ?? null;
+	const patchIntent = result.patch
+		? meaningfulOperations && meaningfulOperations.length > 0
+			? 'meaningful'
+			: 'noop'
+		: 'none';
+
+	return {
+		...result,
+		patch:
+			patchIntent === 'meaningful' && meaningfulOperations
+				? {
+						operations: meaningfulOperations
+					}
+				: null,
+		patchIntent
+	};
 }

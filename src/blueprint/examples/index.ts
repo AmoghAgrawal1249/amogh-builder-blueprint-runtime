@@ -1,27 +1,29 @@
-import type { BringTheFirmExample } from './types';
+import { clientMeetingExamples } from './client-meeting';
+import { dormantAccountExamples } from './dormant-account';
+import { pursuitStageExamples } from './pursuit-stage';
+import { stakeholderActivityExamples } from './stakeholder-activity';
 
-export type { BringTheFirmExample } from './types';
+export type { BringTheFirmExample, BringTheFirmExamples } from './types';
+export * from './client-meeting';
+export * from './dormant-account';
+export * from './pursuit-stage';
+export * from './stakeholder-activity';
 
-export const bringTheFirmExamples: BringTheFirmExample[] = [
-	{
-		to: ['Client team owner'],
-		cc: [],
-		attachments: ['Recommended colleagues.pdf'],
-		body: [
-			{
-				type: 'paragraph',
-				text: 'A client meeting was added for {{client_name}}, and Overbase found colleagues who may strengthen the conversation.'
-			},
-			{
-				type: 'bullets',
-				items: [
-					'{{colleague_name}} has recent experience with {{relevant_context}}.',
-					'The recommended talking point is {{recommended_talking_point}}.',
-					'Review the attached colleague summary before the meeting.'
-				]
-			}
-		],
-		fireReason:
-			'This email fires when a client or pursuit moment matches the configured Bring the firm trigger and relevant colleague expertise is found.'
-	}
+export const bringTheFirmExamples = [
+	clientMeetingExamples,
+	pursuitStageExamples,
+	dormantAccountExamples,
+	stakeholderActivityExamples
 ];
+
+export function listBringTheFirmExamples() {
+	return [...bringTheFirmExamples];
+}
+
+export function getBringTheFirmExamples(slug: string) {
+	return bringTheFirmExamples.find((examples) => examples.slug === slug) ?? null;
+}
+
+export function listBringTheFirmDraftExamples(examplesSlug: string) {
+	return getBringTheFirmExamples(examplesSlug)?.examples ?? [];
+}

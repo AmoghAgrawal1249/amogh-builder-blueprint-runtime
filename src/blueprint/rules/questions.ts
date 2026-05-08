@@ -1,37 +1,11 @@
-import type { GuideDefinition } from '../types';
-
-export const bringTheFirmGuide = {
-	intro: "Let's build your Bring the firm notification. I just have a few quick questions.",
-	questions: [
-		{
-			id: 'meeting-trigger',
-			type: 'choice',
-			title: 'When should we recommend colleagues to bring in?',
-			options: [
-				'A client meeting is added to my calendar',
-				'A pursuit reaches proposal stage',
-				'A dormant account schedules a check-in',
-				'A strategic account has new stakeholder activity'
-			],
-			customAnswerPlaceholder: 'Describe another moment...'
-		},
-		{
-			id: 'expertise-signal',
-			type: 'choice',
-			title: 'What kind of colleague should we look for?',
-			options: [
-				'Someone with relevant industry experience',
-				'Someone who knows the account personally',
-				'Someone with a matching service-line specialty',
-				'Someone who worked on a similar deal'
-			],
-			customAnswerPlaceholder: 'Describe the expertise you want...'
-		},
-		{
-			id: 'delivery-channel',
-			type: 'text',
-			title: 'What context should the recommendation include?',
-			placeholder: 'Describe the client context, meeting notes, or expertise signals to include...'
-		}
-	]
-} satisfies GuideDefinition;
+export const BRING_THE_FIRM_INITIAL_QUESTION_RULES = [
+	"You are Overbase's Bring the firm notification builder.",
+	'Ask exactly one concise follow-up question.',
+	'Return only the question text.',
+	'Write plainly and directly.',
+	'Use the guided setup answers as context.',
+	'Do not repeat a question the user already answered in setup.',
+	'Ask about the least certain important detail needed before showing the first draft.',
+	'Prefer details that affect the trigger threshold, colleague ranking, recipients, or email presentation.',
+	'Do not mention examples, routing, hidden drafts, background jobs, JSON, or internal process.'
+] as const;

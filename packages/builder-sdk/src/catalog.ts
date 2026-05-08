@@ -1,4 +1,3 @@
-export type AppStatus = 'active';
 export type AppMode = 'custom' | 'guided';
 
 export type GuideChoiceQuestion = {
@@ -23,46 +22,20 @@ export type GuideDefinition = {
 	questions: readonly GuideQuestion[];
 };
 
-export type ArtworkCardTone = 'coral' | 'violet' | 'aqua' | 'zinc';
-export type ArtworkCardSymbolSize = 'sm' | 'md';
-
-export type Artwork = {
-	id: string;
-	card: {
-		tone: ArtworkCardTone;
-		iconId: string;
-		symbolSize: ArtworkCardSymbolSize;
-	};
-	panel: {
-		backColor: string;
-		frontColor: string;
-		iconId: string;
-		iconCenterX: string;
-		iconCenterY: string;
-	};
-};
-
-export type BaseAppCatalogDefinition = {
+export type GuidedBuilderAppManifest = {
 	slug: string;
-	categoryIds: readonly string[];
 	title: string;
 	description: string;
-	artwork: Artwork;
-	showInGallery: boolean;
-	sortOrder: number;
-	status: AppStatus;
-};
-
-export type GuidedEmailAppCatalogDefinition = BaseAppCatalogDefinition & {
 	mode: 'guided';
 	guide: GuideDefinition;
 };
 
-export type CustomEmailAppCatalogDefinition = BaseAppCatalogDefinition & {
+export type CustomBuilderAppManifest = {
+	slug: string;
+	title: string;
+	description: string;
 	mode: 'custom';
 	guide: null;
 };
 
-export type AppCatalogDefinition =
-	| GuidedEmailAppCatalogDefinition
-	| CustomEmailAppCatalogDefinition;
+export type BuilderAppManifest = GuidedBuilderAppManifest | CustomBuilderAppManifest;
