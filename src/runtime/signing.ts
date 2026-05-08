@@ -7,10 +7,10 @@ const APP_SLUG = 'bring-the-firm';
 const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
 
 function getRuntimeSecret() {
-	const secret = process.env.OVERBASE_BUILDER_APP_SECRET;
+	const secret = process.env.BRING_THE_FIRM_OVERBASE_SECRET;
 
 	if (!secret) {
-		throw new Error('OVERBASE_BUILDER_APP_SECRET is not configured.');
+		throw new Error('BRING_THE_FIRM_OVERBASE_SECRET is not configured.');
 	}
 
 	return secret;
