@@ -23,7 +23,7 @@ export type GuideDefinition = {
 };
 
 export type BuilderAppDetails = {
-	paragraphs: readonly string[];
+	paragraphs: readonly [string, ...string[]];
 };
 
 export type GuidedBuilderAppManifest = {
