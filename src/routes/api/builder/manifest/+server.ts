@@ -1,5 +1,7 @@
 import { json } from '@sveltejs/kit';
-import { runtime } from '$runtime/operations';
+import { createRuntimeContext } from '$runtime/app.server';
+
+const { runtime } = createRuntimeContext();
 
 export const GET = () => {
 	return json({

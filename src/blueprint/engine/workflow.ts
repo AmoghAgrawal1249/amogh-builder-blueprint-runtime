@@ -7,12 +7,12 @@ import {
 } from '@overbase/builder-sdk/email';
 import {
 	callStructuredTool,
-	getOpenAIConfig,
 	getOpenAIErrorMessage,
 	getOpenAIHeaders,
 	OPENAI_RESPONSES_URL,
 	STRUCTURED_MAX_OUTPUT_TOKENS,
-	supportsReasoningOptions
+	supportsReasoningOptions,
+	type OpenAIConfig
 } from '@overbase/builder-sdk/openai';
 import { readEmailBuilderTurnStream, readOpenAIStream } from '@overbase/builder-sdk/streams';
 import {
@@ -44,11 +44,12 @@ const BRING_THE_FIRM_INITIAL_ANSWER_TOOL_NAME = 'apply_initial_bring_the_firm_an
 export async function routeBringTheFirmBuilderRequest(params: {
 	initialMessage: string;
 	examples: BringTheFirmExamplesCandidate[];
+	openAIConfig: OpenAIConfig;
 }) {
 	const prompt = buildBringTheFirmRoutingPrompt(params);
 
 	return await callStructuredTool<BringTheFirmRouteResult>({
-		profile: 'fast',
+		openAIConfig: params.openAIConfig,
 		systemPrompt: prompt.systemPrompt,
 		userPrompt: prompt.userPrompt,
 		toolName: BRING_THE_FIRM_ROUTE_TOOL_NAME,
@@ -76,8 +77,9 @@ export async function streamBringTheFirmInitialQuestion(params: {
 	examples: BringTheFirmExamplesCandidate;
 	proposedQuestion: string;
 	handlers: ChatReplyStreamHandlers;
+	openAIConfig: OpenAIConfig;
 }) {
-	const { apiKey, model, reasoningEffort } = getOpenAIConfig('fast');
+	const { apiKey, model, reasoningEffort } = params.openAIConfig;
 	const prompt = buildBringTheFirmInitialQuestionPrompt(params);
 	const response = await fetch(OPENAI_RESPONSES_URL, {
 		method: 'POST',
@@ -112,9 +114,11 @@ export async function adaptBringTheFirmExample(params: {
 	initialMessage: string;
 	examples: BringTheFirmExamplesCandidate;
 	draftExamples: BringTheFirmExampleCandidate[];
+	openAIConfig: OpenAIConfig;
 }) {
 	const prompt = buildBringTheFirmExampleAdaptationPrompt(params);
 	const result = await callStructuredTool<BringTheFirmAdaptedExampleResult>({
+		openAIConfig: params.openAIConfig,
 		systemPrompt: prompt.systemPrompt,
 		userPrompt: prompt.userPrompt,
 		toolName: BRING_THE_FIRM_ADAPT_TOOL_NAME,
@@ -152,9 +156,11 @@ export async function applyBringTheFirmInitialAnswer(params: {
 	initialQuestion: string;
 	initialAnswer: string;
 	draft: EmailDraft;
+	openAIConfig: OpenAIConfig;
 }) {
 	const prompt = buildBringTheFirmInitialAnswerPrompt(params);
 	const result = await callStructuredTool<{ emailDraft: EmailDraft }>({
+		openAIConfig: params.openAIConfig,
 		systemPrompt: prompt.systemPrompt,
 		userPrompt: prompt.userPrompt,
 		toolName: BRING_THE_FIRM_INITIAL_ANSWER_TOOL_NAME,
@@ -177,8 +183,9 @@ export async function streamBringTheFirmBuilderTurn(params: {
 	draft: EmailDraft;
 	recentEvents: EmailBuilderEventContext[];
 	handlers: EmailBuilderTurnStreamHandlers;
+	openAIConfig: OpenAIConfig;
 }): Promise<EmailBuilderTurnStreamResult> {
-	const { apiKey, model, reasoningEffort } = getOpenAIConfig();
+	const { apiKey, model, reasoningEffort } = params.openAIConfig;
 	const refinementSystemPrompt = buildBringTheFirmRefinementSystemPrompt();
 	const refinementUserPrompt = buildBringTheFirmRefinementUserPrompt({
 		draft: params.draft,

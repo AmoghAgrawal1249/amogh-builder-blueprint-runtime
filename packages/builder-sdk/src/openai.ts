@@ -30,6 +30,19 @@ type OpenAIResponseBody = {
 
 export type OpenAIModelProfile = 'default' | 'fast';
 export type OpenAIReasoningEffort = 'minimal' | 'low' | 'medium' | 'high';
+export type OpenAIConfig = {
+	apiKey: string;
+	model: string;
+	reasoningEffort: OpenAIReasoningEffort;
+};
+export type OpenAIConfigParams = {
+	apiKey: string | undefined;
+	chatModel?: string;
+	fastChatModel?: string;
+	reasoningEffort?: string;
+	fastReasoningEffort?: string;
+	profile?: OpenAIModelProfile;
+};
 
 function isOpenAIReasoningEffort(value: string | undefined): value is OpenAIReasoningEffort {
 	return value === 'minimal' || value === 'low' || value === 'medium' || value === 'high';
@@ -39,19 +52,22 @@ function getReasoningEffort(value: string | undefined, fallback: OpenAIReasoning
 	return isOpenAIReasoningEffort(value) ? value : fallback;
 }
 
-export function getOpenAIConfig(profile: OpenAIModelProfile = 'default') {
-	const apiKey = process.env.OPENAI_API_KEY;
+export function getOpenAIConfig({
+	apiKey,
+	chatModel,
+	fastChatModel,
+	reasoningEffort: configuredReasoningEffort,
+	fastReasoningEffort,
+	profile = 'default'
+}: OpenAIConfigParams): OpenAIConfig {
 	const model =
 		profile === 'fast'
-			? (process.env.OPENAI_FAST_CHAT_MODEL ?? DEFAULT_OPENAI_FAST_MODEL)
-			: (process.env.OPENAI_CHAT_MODEL ?? DEFAULT_OPENAI_MODEL);
+			? (fastChatModel ?? DEFAULT_OPENAI_FAST_MODEL)
+			: (chatModel ?? DEFAULT_OPENAI_MODEL);
 	const reasoningEffort =
 		profile === 'fast'
-			? getReasoningEffort(
-					process.env.OPENAI_FAST_REASONING_EFFORT,
-					DEFAULT_OPENAI_FAST_REASONING_EFFORT
-				)
-			: getReasoningEffort(process.env.OPENAI_REASONING_EFFORT, DEFAULT_OPENAI_REASONING_EFFORT);
+			? getReasoningEffort(fastReasoningEffort, DEFAULT_OPENAI_FAST_REASONING_EFFORT)
+			: getReasoningEffort(configuredReasoningEffort, DEFAULT_OPENAI_REASONING_EFFORT);
 
 	if (!apiKey) {
 		throw new Error('OPENAI_API_KEY is not configured.');
@@ -100,9 +116,9 @@ export async function callStructuredTool<T>(params: {
 	toolName: string;
 	toolDescription: string;
 	toolParameters: unknown;
-	profile?: OpenAIModelProfile;
+	openAIConfig: OpenAIConfig;
 }) {
-	const { apiKey, model, reasoningEffort } = getOpenAIConfig(params.profile);
+	const { apiKey, model, reasoningEffort } = params.openAIConfig;
 	const body = {
 		model,
 		input: [

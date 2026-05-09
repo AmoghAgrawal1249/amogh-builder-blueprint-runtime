@@ -6,16 +6,6 @@ const APP_HEADER = 'x-overbase-app';
 const APP_SLUG = 'bring-the-firm';
 const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
 
-function getRuntimeSecret() {
-	const secret = process.env.BRING_THE_FIRM_OVERBASE_SECRET;
-
-	if (!secret) {
-		throw new Error('BRING_THE_FIRM_OVERBASE_SECRET is not configured.');
-	}
-
-	return secret;
-}
-
 function signBody(params: { secret: string; timestamp: string; body: string }) {
 	return createHmac('sha256', params.secret)
 		.update(`${params.timestamp}.${params.body}`)
@@ -29,11 +19,19 @@ function signaturesMatch(left: string, right: string) {
 	return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
 }
 
-export function verifyOverbaseSignature(params: { headers: Headers; body: string }) {
+export function verifyOverbaseSignature(params: {
+	headers: Headers;
+	body: string;
+	secret: string | undefined;
+}) {
 	const signature = params.headers.get(SIGNATURE_HEADER) ?? '';
 	const timestamp = params.headers.get(TIMESTAMP_HEADER) ?? '';
 	const app = params.headers.get(APP_HEADER) ?? '';
 	const timestampMs = Number(timestamp);
+
+	if (!params.secret) {
+		throw new Error('BRING_THE_FIRM_OVERBASE_SECRET is not configured.');
+	}
 
 	if (app !== APP_SLUG) {
 		return 'Invalid app.';
@@ -44,7 +42,7 @@ export function verifyOverbaseSignature(params: { headers: Headers; body: string
 	}
 
 	const expectedSignature = signBody({
-		secret: getRuntimeSecret(),
+		secret: params.secret,
 		timestamp,
 		body: params.body
 	});

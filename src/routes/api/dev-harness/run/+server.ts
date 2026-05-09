@@ -1,5 +1,5 @@
 import { streamBuilderEvents } from '$runtime/ndjson';
-import { runtime } from '$runtime/operations';
+import { createRuntimeContext } from '$runtime/app.server';
 import type {
 	BuilderAppContinueTurnInput,
 	BuilderAppStartTurnInput
@@ -18,6 +18,8 @@ type DevHarnessRunInput =
 			action: 'continue';
 			input: DevHarnessContinueInput;
 	  };
+
+const { runtime } = createRuntimeContext();
 
 export const POST: RequestHandler = async ({ request }) => {
 	const body = (await request.json()) as DevHarnessRunInput;

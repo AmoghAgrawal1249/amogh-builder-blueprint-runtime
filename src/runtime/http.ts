@@ -11,12 +11,16 @@ type TurnOperation<TInput> = (
 ) => Promise<BuilderAppOutputEvent[]>;
 type BackgroundOperation<TInput> = (input: TInput) => Promise<BuilderAppOutputEvent[]>;
 type JsonTurnInput<TInput> = Omit<TInput, 'handlers'>;
+type SignedRouteOptions = {
+	overbaseSecret: string | undefined;
+};
 
-export async function readSignedJson<T>(event: RequestEvent) {
+export async function readSignedJson<T>(event: RequestEvent, options: SignedRouteOptions) {
 	const body = await event.request.text();
 	const signatureError = verifyOverbaseSignature({
 		headers: event.request.headers,
-		body
+		body,
+		secret: options.overbaseSecret
 	});
 
 	if (signatureError) {
@@ -27,10 +31,11 @@ export async function readSignedJson<T>(event: RequestEvent) {
 }
 
 export function signedTurnRoute<TInput extends { handlers: unknown }>(
-	run: TurnOperation<TInput>
+	run: TurnOperation<TInput>,
+	options: SignedRouteOptions
 ): RequestHandler {
 	return async (event) => {
-		const input = await readSignedJson<JsonTurnInput<TInput>>(event);
+		const input = await readSignedJson<JsonTurnInput<TInput>>(event, options);
 
 		if (input instanceof Response) {
 			return input;
@@ -49,10 +54,11 @@ export function signedTurnRoute<TInput extends { handlers: unknown }>(
 }
 
 export function signedBackgroundRoute<TInput>(
-	run: BackgroundOperation<TInput>
+	run: BackgroundOperation<TInput>,
+	options: SignedRouteOptions
 ): RequestHandler {
 	return async (event) => {
-		const input = await readSignedJson<TInput>(event);
+		const input = await readSignedJson<TInput>(event, options);
 
 		if (input instanceof Response) {
 			return input;

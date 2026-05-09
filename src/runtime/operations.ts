@@ -17,6 +17,7 @@ import type {
 	BuilderAppState
 } from '@overbase/builder-sdk/app-protocol';
 import type { EmailDraft, EmailDraftPatch } from '@overbase/builder-sdk/email';
+import type { RuntimeDependencies } from './dependencies';
 
 type EmitEvent = (event: BuilderAppOutputEvent) => Promise<void> | void;
 
@@ -110,130 +111,141 @@ function toAssistantPatchResultEvents(result: {
 	];
 }
 
-export async function startTurn(input: BuilderAppStartTurnInput, emit?: EmitEvent) {
-	const examples = listBringTheFirmExamples().map(toInitialQuestionExample);
+export function createBringTheFirmRuntime(deps: RuntimeDependencies) {
+	async function startTurn(input: BuilderAppStartTurnInput, emit?: EmitEvent) {
+		const fastOpenAIConfig = deps.getOpenAIConfig('fast');
+		const examples = listBringTheFirmExamples().map(toInitialQuestionExample);
 
-	if (examples.length === 0) {
-		throw new Error('No Bring the firm examples are available.');
-	}
-
-	const routeResult = await routeBringTheFirmBuilderRequest({
-		initialMessage: input.initialMessage,
-		examples
-	});
-	const selectedExamples =
-		examples.find((candidate) => candidate.slug === routeResult.examplesSlug) ?? examples[0];
-	const questionText = await streamBringTheFirmInitialQuestion({
-		initialMessage: input.initialMessage,
-		examples: selectedExamples,
-		proposedQuestion: routeResult.question,
-		handlers: {
-			onDelta: async (delta) => {
-				await emit?.({ type: 'assistantDelta', text: delta });
-				await input.handlers.onAssistantDelta?.(delta);
-			}
+		if (examples.length === 0) {
+			throw new Error('No Bring the firm examples are available.');
 		}
-	});
 
-	return [
-		{ type: 'assistantComplete', text: questionText },
-		{
-			type: 'appStatePatch',
-			patch: {
-				selectedExamplesSlug: selectedExamples.slug,
-				initialQuestionText: questionText
-			}
-		},
-		{ type: 'enqueueBackgroundJob' },
-		{ type: 'waitForUser' },
-		{ type: 'complete' }
-	] satisfies BuilderAppOutputEvent[];
-}
-
-export async function continueTurn(input: BuilderAppContinueTurnInput, emit?: EmitEvent) {
-	if (!input.emailDraft && input.preparedEmailDraft) {
-		const bringTheFirmState = getBringTheFirmAppState(input.appState);
-		const emailDraft = await applyBringTheFirmInitialAnswer({
+		const routeResult = await routeBringTheFirmBuilderRequest({
 			initialMessage: input.initialMessage,
-			initialQuestion: bringTheFirmState.initialQuestionText ?? '',
-			initialAnswer: input.userMessage,
-			draft: input.preparedEmailDraft
+			examples,
+			openAIConfig: fastOpenAIConfig
+		});
+		const selectedExamples =
+			examples.find((candidate) => candidate.slug === routeResult.examplesSlug) ?? examples[0];
+		const questionText = await streamBringTheFirmInitialQuestion({
+			initialMessage: input.initialMessage,
+			examples: selectedExamples,
+			proposedQuestion: routeResult.question,
+			openAIConfig: fastOpenAIConfig,
+			handlers: {
+				onDelta: async (delta) => {
+					await emit?.({ type: 'assistantDelta', text: delta });
+					await input.handlers.onAssistantDelta?.(delta);
+				}
+			}
 		});
 
 		return [
+			{ type: 'assistantComplete', text: questionText },
 			{
-				type: 'assistantComplete',
-				text: 'I adjusted the draft based on that and put it in the panel.'
+				type: 'appStatePatch',
+				patch: {
+					selectedExamplesSlug: selectedExamples.slug,
+					initialQuestionText: questionText
+				}
 			},
-			{ type: 'emailDraftReplace', emailDraft },
+			{ type: 'enqueueBackgroundJob' },
+			{ type: 'waitForUser' },
 			{ type: 'complete' }
 		] satisfies BuilderAppOutputEvent[];
 	}
 
-	if (!input.emailDraft) {
-		throw new Error('The visible email draft is unavailable.');
-	}
+	async function continueTurn(input: BuilderAppContinueTurnInput, emit?: EmitEvent) {
+		const openAIConfig = deps.getOpenAIConfig();
 
-	const result = await streamBringTheFirmBuilderTurn({
-		transcript: input.transcript,
-		draft: input.emailDraft,
-		recentEvents: input.recentEvents,
-		handlers: {
-			onTextDelta: async (delta) => {
-				await emit?.({ type: 'assistantDelta', text: delta });
-				await input.handlers.onAssistantDelta?.(delta);
-			}
+		if (!input.emailDraft && input.preparedEmailDraft) {
+			const bringTheFirmState = getBringTheFirmAppState(input.appState);
+			const emailDraft = await applyBringTheFirmInitialAnswer({
+				initialMessage: input.initialMessage,
+				initialQuestion: bringTheFirmState.initialQuestionText ?? '',
+				initialAnswer: input.userMessage,
+				draft: input.preparedEmailDraft,
+				openAIConfig
+			});
+
+			return [
+				{
+					type: 'assistantComplete',
+					text: 'I adjusted the draft based on that and put it in the panel.'
+				},
+				{ type: 'emailDraftReplace', emailDraft },
+				{ type: 'complete' }
+			] satisfies BuilderAppOutputEvent[];
 		}
-	});
 
-	return toAssistantPatchResultEvents(result);
-}
+		if (!input.emailDraft) {
+			throw new Error('The visible email draft is unavailable.');
+		}
 
-export async function backgroundJob(input: BuilderAppBackgroundJobInput) {
-	const bringTheFirmState = getBringTheFirmAppState(input.appState);
-	const selectedExamplesSlug = bringTheFirmState.selectedExamplesSlug;
-
-	if (!selectedExamplesSlug) {
-		throw new Error('The selected examples are unavailable.');
-	}
-
-	const examples = getBringTheFirmExamples(selectedExamplesSlug);
-
-	if (!examples) {
-		throw new Error('The selected examples are unavailable.');
-	}
-
-	const draftExamples = listBringTheFirmDraftExamples(selectedExamplesSlug).map(toDraftExample);
-
-	if (draftExamples.length === 0) {
-		throw new Error('No Bring the firm draft examples are available for these examples.');
-	}
-
-	const adapted = await adaptBringTheFirmExample({
-		initialMessage: input.initialMessage,
-		examples: toInitialQuestionExample(examples),
-		draftExamples
-	});
-
-	return [
-		{
-			type: 'emailDraftReplace',
-			emailDraft: adapted.emailDraft,
-			visible: false
-		},
-		{
-			type: 'appStatePatch',
-			patch: {
-				selectedExampleSlug: adapted.exampleSlug
+		const result = await streamBringTheFirmBuilderTurn({
+			transcript: input.transcript,
+			draft: input.emailDraft,
+			recentEvents: input.recentEvents,
+			openAIConfig,
+			handlers: {
+				onTextDelta: async (delta) => {
+					await emit?.({ type: 'assistantDelta', text: delta });
+					await input.handlers.onAssistantDelta?.(delta);
+				}
 			}
-		},
-		{ type: 'complete' }
-	] satisfies BuilderAppOutputEvent[];
-}
+		});
 
-export const runtime = {
-	manifest: bringTheFirmManifest,
-	startTurn,
-	continueTurn,
-	backgroundJob
-};
+		return toAssistantPatchResultEvents(result);
+	}
+
+	async function backgroundJob(input: BuilderAppBackgroundJobInput) {
+		const openAIConfig = deps.getOpenAIConfig();
+		const bringTheFirmState = getBringTheFirmAppState(input.appState);
+		const selectedExamplesSlug = bringTheFirmState.selectedExamplesSlug;
+
+		if (!selectedExamplesSlug) {
+			throw new Error('The selected examples are unavailable.');
+		}
+
+		const examples = getBringTheFirmExamples(selectedExamplesSlug);
+
+		if (!examples) {
+			throw new Error('The selected examples are unavailable.');
+		}
+
+		const draftExamples = listBringTheFirmDraftExamples(selectedExamplesSlug).map(toDraftExample);
+
+		if (draftExamples.length === 0) {
+			throw new Error('No Bring the firm draft examples are available for these examples.');
+		}
+
+		const adapted = await adaptBringTheFirmExample({
+			initialMessage: input.initialMessage,
+			examples: toInitialQuestionExample(examples),
+			draftExamples,
+			openAIConfig
+		});
+
+		return [
+			{
+				type: 'emailDraftReplace',
+				emailDraft: adapted.emailDraft,
+				visible: false
+			},
+			{
+				type: 'appStatePatch',
+				patch: {
+					selectedExampleSlug: adapted.exampleSlug
+				}
+			},
+			{ type: 'complete' }
+		] satisfies BuilderAppOutputEvent[];
+	}
+
+	return {
+		manifest: bringTheFirmManifest,
+		startTurn,
+		continueTurn,
+		backgroundJob
+	};
+}

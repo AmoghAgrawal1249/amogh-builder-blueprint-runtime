@@ -9,7 +9,13 @@ import type {
 	BuilderAppOutputEvent,
 	BuilderAppState
 } from '@overbase/builder-sdk/app-protocol';
-import { DEFAULT_INITIAL_MESSAGE } from './default-scenario';
+import {
+	bringTheFirmManifest,
+	buildGuidedInitialMessage,
+	type GuideAnswersByQuestionId,
+	type GuideChoiceQuestion
+} from '$blueprint';
+import { DEFAULT_GUIDE_ANSWERS } from './default-scenario';
 import { postRuntimeEvents } from './post-runtime-events';
 
 export type ChatMessage = {
@@ -37,7 +43,10 @@ function changedFieldsForPatch(patch: EmailDraftPatch): EmailDraftChangedField[]
 }
 
 export function createDevHarnessState() {
-	let initialMessage = $state(DEFAULT_INITIAL_MESSAGE);
+	const guide = bringTheFirmManifest.guide;
+	let guideAnswersByQuestionId = $state<GuideAnswersByQuestionId>({
+		...DEFAULT_GUIDE_ANSWERS
+	});
 	let replyText = $state('');
 	let messages = $state<ChatMessage[]>([]);
 	let preparedDraft = $state<EmailDraft | null>(null);
@@ -48,11 +57,42 @@ export function createDevHarnessState() {
 	let errorText = $state('');
 	let nextMessageId = 1;
 
+	const initialMessage = $derived(
+		buildGuidedInitialMessage({
+			title: bringTheFirmManifest.title,
+			description: bringTheFirmManifest.description,
+			guide,
+			answersByQuestionId: guideAnswersByQuestionId
+		})
+	);
 	const canStart = $derived(!isRunning && Boolean(initialMessage.trim()));
 	const canReply = $derived(!isRunning && Boolean(replyText.trim()) && messages.length > 0);
 	const latestAssistantIndex = $derived(
 		messages.findLastIndex((message) => message.role === 'assistant')
 	);
+
+	function getGuideAnswer(questionId: string) {
+		return guideAnswersByQuestionId[questionId] ?? '';
+	}
+
+	function setGuideAnswer(questionId: string, value: string) {
+		guideAnswersByQuestionId = {
+			...guideAnswersByQuestionId,
+			[questionId]: value
+		};
+	}
+
+	function getChoiceCustomAnswer(question: GuideChoiceQuestion) {
+		const answer = getGuideAnswer(question.id);
+
+		return question.options.includes(answer) ? '' : answer;
+	}
+
+	function resetGuideAnswers() {
+		guideAnswersByQuestionId = {
+			...DEFAULT_GUIDE_ANSWERS
+		};
+	}
 
 	function reset() {
 		messages = [];
@@ -244,8 +284,8 @@ export function createDevHarnessState() {
 		get initialMessage() {
 			return initialMessage;
 		},
-		set initialMessage(value: string) {
-			initialMessage = value;
+		get guide() {
+			return guide;
 		},
 		get replyText() {
 			return replyText;
@@ -274,6 +314,10 @@ export function createDevHarnessState() {
 		get canReply() {
 			return canReply;
 		},
+		getGuideAnswer,
+		setGuideAnswer,
+		getChoiceCustomAnswer,
+		resetGuideAnswers,
 		reset,
 		start,
 		sendReply

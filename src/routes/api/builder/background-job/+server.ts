@@ -1,8 +1,13 @@
 import { signedBackgroundRoute } from '$runtime/http';
-import { runtime } from '$runtime/operations';
+import { createRuntimeContext } from '$runtime/app.server';
 import type { RequestHandler } from './$types';
 import type { BuilderAppBackgroundJobInput } from '@overbase/builder-sdk/app-protocol';
 
+const { deps, runtime } = createRuntimeContext();
+
 export const POST: RequestHandler = signedBackgroundRoute<BuilderAppBackgroundJobInput>(
-	runtime.backgroundJob
+	runtime.backgroundJob,
+	{
+		overbaseSecret: deps.overbaseSecret
+	}
 );
