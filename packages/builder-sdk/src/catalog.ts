@@ -22,10 +22,15 @@ export type GuideDefinition = {
 	questions: readonly GuideQuestion[];
 };
 
+export type BuilderAppDetails = {
+	paragraphs: readonly string[];
+};
+
 export type GuidedBuilderAppManifest = {
 	slug: string;
 	title: string;
 	description: string;
+	details: BuilderAppDetails;
 	mode: 'guided';
 	guide: GuideDefinition;
 };
@@ -34,6 +39,7 @@ export type CustomBuilderAppManifest = {
 	slug: string;
 	title: string;
 	description: string;
+	details: BuilderAppDetails;
 	mode: 'custom';
 	guide: null;
 };
