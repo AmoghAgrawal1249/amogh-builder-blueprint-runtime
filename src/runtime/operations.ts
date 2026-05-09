@@ -6,8 +6,7 @@ import {
 	listBringTheFirmDraftExamples,
 	listBringTheFirmExamples,
 	routeBringTheFirmBuilderRequest,
-	streamBringTheFirmBuilderTurn,
-	streamBringTheFirmInitialQuestion
+	streamBringTheFirmBuilderTurn
 } from '$blueprint';
 import type {
 	BuilderAppBackgroundJobInput,
@@ -112,7 +111,7 @@ function toAssistantPatchResultEvents(result: {
 }
 
 export function createBringTheFirmRuntime(deps: RuntimeDependencies) {
-	async function startTurn(input: BuilderAppStartTurnInput, emit?: EmitEvent) {
+	async function startTurn(input: BuilderAppStartTurnInput) {
 		const fastOpenAIConfig = deps.getOpenAIConfig('fast');
 		const examples = listBringTheFirmExamples().map(toInitialQuestionExample);
 
@@ -127,18 +126,7 @@ export function createBringTheFirmRuntime(deps: RuntimeDependencies) {
 		});
 		const selectedExamples =
 			examples.find((candidate) => candidate.slug === routeResult.examplesSlug) ?? examples[0];
-		const questionText = await streamBringTheFirmInitialQuestion({
-			initialMessage: input.initialMessage,
-			examples: selectedExamples,
-			proposedQuestion: routeResult.question,
-			openAIConfig: fastOpenAIConfig,
-			handlers: {
-				onDelta: async (delta) => {
-					await emit?.({ type: 'assistantDelta', text: delta });
-					await input.handlers.onAssistantDelta?.(delta);
-				}
-			}
-		});
+		const questionText = routeResult.publicQuestion;
 
 		return [
 			{ type: 'assistantComplete', text: questionText },

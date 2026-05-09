@@ -14,11 +14,10 @@ import {
 	supportsReasoningOptions,
 	type OpenAIConfig
 } from '@overbase/builder-sdk/openai';
-import { readEmailBuilderTurnStream, readOpenAIStream } from '@overbase/builder-sdk/streams';
+import { readEmailBuilderTurnStream } from '@overbase/builder-sdk/streams';
 import {
 	buildBringTheFirmExampleAdaptationPrompt,
 	buildBringTheFirmInitialAnswerPrompt,
-	buildBringTheFirmInitialQuestionPrompt,
 	buildBringTheFirmRefinementSystemPrompt,
 	buildBringTheFirmRefinementUserPrompt,
 	buildBringTheFirmRoutingPrompt
@@ -28,14 +27,12 @@ import type {
 	BringTheFirmExampleCandidate,
 	BringTheFirmExamplesCandidate,
 	BringTheFirmRouteResult,
-	ChatReplyStreamHandlers,
 	EmailBuilderEventContext,
 	EmailBuilderTurnStreamHandlers,
 	EmailBuilderTurnStreamResult,
 	TranscriptMessage
 } from '../types';
 
-const INITIAL_QUESTION_MAX_OUTPUT_TOKENS = 300;
 const UPDATE_EMAIL_DRAFT_TOOL_NAME = 'update_email_draft';
 const BRING_THE_FIRM_ROUTE_TOOL_NAME = 'select_bring_the_firm_examples';
 const BRING_THE_FIRM_ADAPT_TOOL_NAME = 'adapt_bring_the_firm_example';
@@ -62,52 +59,15 @@ export async function routeBringTheFirmBuilderRequest(params: {
 					type: 'string',
 					enum: params.examples.map((examplesSet) => examplesSet.slug)
 				},
-				question: {
+				publicQuestion: {
 					type: 'string',
-					description: 'One concise question about the least certain important detail.'
+					description:
+						'The exact one-sentence public follow-up question to show the user, following the selected examples set questionGuidance.'
 				}
 			},
-			required: ['examplesSlug', 'question']
+			required: ['examplesSlug', 'publicQuestion']
 		}
 	});
-}
-
-export async function streamBringTheFirmInitialQuestion(params: {
-	initialMessage: string;
-	examples: BringTheFirmExamplesCandidate;
-	proposedQuestion: string;
-	handlers: ChatReplyStreamHandlers;
-	openAIConfig: OpenAIConfig;
-}) {
-	const { apiKey, model, reasoningEffort } = params.openAIConfig;
-	const prompt = buildBringTheFirmInitialQuestionPrompt(params);
-	const response = await fetch(OPENAI_RESPONSES_URL, {
-		method: 'POST',
-		headers: getOpenAIHeaders(apiKey),
-		body: JSON.stringify({
-			model,
-			input: [
-				{
-					role: 'system',
-					content: prompt.systemPrompt
-				},
-				{
-					role: 'user',
-					content: prompt.userPrompt
-				}
-			],
-			...(supportsReasoningOptions(model) ? { reasoning: { effort: reasoningEffort } } : {}),
-			max_output_tokens: INITIAL_QUESTION_MAX_OUTPUT_TOKENS,
-			store: false,
-			stream: true
-		})
-	});
-
-	if (!response.ok) {
-		throw new Error(await getOpenAIErrorMessage(response));
-	}
-
-	return await readOpenAIStream(response, params.handlers);
 }
 
 export async function adaptBringTheFirmExample(params: {

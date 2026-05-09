@@ -8,8 +8,6 @@ export type {
 	GuideTextQuestion
 } from '@overbase/builder-sdk/catalog';
 export type {
-	ChatReplyDeltaHandler,
-	ChatReplyStreamHandlers,
 	EmailBuilderEventContext,
 	EmailBuilderTurnStreamHandlers,
 	EmailBuilderTurnStreamResult,
@@ -31,7 +29,7 @@ export type BringTheFirmExampleCandidate = {
 
 export type BringTheFirmRouteResult = {
 	examplesSlug: string;
-	question: string;
+	publicQuestion: string;
 };
 
 export type BringTheFirmAdaptedExampleResult = {

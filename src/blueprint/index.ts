@@ -14,6 +14,5 @@ export {
 	adaptBringTheFirmExample,
 	applyBringTheFirmInitialAnswer,
 	routeBringTheFirmBuilderRequest,
-	streamBringTheFirmBuilderTurn,
-	streamBringTheFirmInitialQuestion
+	streamBringTheFirmBuilderTurn
 } from './engine';

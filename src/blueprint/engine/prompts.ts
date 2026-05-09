@@ -4,7 +4,6 @@ import {
 	BRING_THE_FIRM_EXAMPLE_ADAPTATION_OPENING_RULES,
 	BRING_THE_FIRM_INITIAL_ANSWER_DRAFT_RULES,
 	BRING_THE_FIRM_INITIAL_ANSWER_OPENING_RULES,
-	BRING_THE_FIRM_INITIAL_QUESTION_RULES,
 	BRING_THE_FIRM_REFINEMENT_CHAT_RULES,
 	BRING_THE_FIRM_REFINEMENT_DRAFT_RULES,
 	BRING_THE_FIRM_ROUTING_RULES,
@@ -33,21 +32,6 @@ export function buildBringTheFirmRoutingPrompt(params: {
 			'Available examples:',
 			stringifyPromptData(params.examples)
 		].join('\n\n')
-	};
-}
-
-export function buildBringTheFirmInitialQuestionPrompt(params: {
-	initialMessage: string;
-	examples: BringTheFirmExamplesCandidate;
-	proposedQuestion: string;
-}) {
-	return {
-		systemPrompt: joinPromptLines(BRING_THE_FIRM_INITIAL_QUESTION_RULES),
-		userPrompt: [
-			`Guided setup answers: ${params.initialMessage}`,
-			`Question guidance: ${params.examples.questionGuidance}`,
-			`Proposed question: ${params.proposedQuestion}`
-		].join('\n')
 	};
 }
 

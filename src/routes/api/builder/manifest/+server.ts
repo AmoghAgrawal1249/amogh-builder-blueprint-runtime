@@ -1,10 +1,8 @@
 import { json } from '@sveltejs/kit';
-import { createRuntimeContext } from '$runtime/app.server';
-
-const { runtime } = createRuntimeContext();
+import { bringTheFirmManifest } from '$blueprint/definition';
 
 export const GET = () => {
 	return json({
-		manifest: runtime.manifest
+		manifest: bringTheFirmManifest
 	});
 };
