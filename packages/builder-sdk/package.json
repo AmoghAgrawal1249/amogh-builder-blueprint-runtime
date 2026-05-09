@@ -28,6 +28,10 @@
 			"types": "./dist/app-protocol.d.ts",
 			"default": "./dist/app-protocol.js"
 		},
+		"./host": {
+			"types": "./dist/host.d.ts",
+			"default": "./dist/host.js"
+		},
 		"./streams": {
 			"types": "./dist/streams.d.ts",
 			"default": "./dist/streams.js"

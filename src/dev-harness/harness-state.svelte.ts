@@ -1,21 +1,14 @@
+import type { BuilderAppOutputEvent } from '@overbase/builder-sdk/app-protocol';
 import {
-	applyEmailDraftPatch,
-	type EmailDraft,
-	type EmailDraftChangedField,
-	type EmailDraftPatch,
-	type EmailDraftPatchOperation
-} from '@overbase/builder-sdk/email';
-import type {
-	BuilderAppOutputEvent,
-	BuilderAppState
-} from '@overbase/builder-sdk/app-protocol';
+	applyBuilderHostEvent,
+	createInitialBuilderHostState
+} from '@overbase/builder-sdk/host';
 import {
 	bringTheFirmManifest,
 	buildGuidedInitialMessage,
 	type GuideAnswersByQuestionId,
 	type GuideChoiceQuestion
 } from '$blueprint';
-import { DEFAULT_GUIDE_ANSWERS } from './default-scenario';
 import { postRuntimeEvents } from './post-runtime-events';
 
 export type ChatMessage = {
@@ -24,35 +17,12 @@ export type ChatMessage = {
 	text: string;
 };
 
-type RecentDraftChange = {
-	summary: string;
-	changedFields: EmailDraftChangedField[];
-	createdAt: number;
-};
-
-function changedFieldsForPatch(patch: EmailDraftPatch): EmailDraftChangedField[] {
-	const fields = patch.operations.map((operation: EmailDraftPatchOperation) => {
-		if (operation.type === 'setTo') return 'to';
-		if (operation.type === 'setCc') return 'cc';
-		if (operation.type === 'setAttachments') return 'attachments';
-		if (operation.type === 'setBody') return 'body';
-		return 'fireReason';
-	});
-
-	return [...new Set(fields)];
-}
-
 export function createDevHarnessState() {
 	const guide = bringTheFirmManifest.guide;
-	let guideAnswersByQuestionId = $state<GuideAnswersByQuestionId>({
-		...DEFAULT_GUIDE_ANSWERS
-	});
+	let guideAnswersByQuestionId = $state<GuideAnswersByQuestionId>({});
 	let replyText = $state('');
 	let messages = $state<ChatMessage[]>([]);
-	let preparedDraft = $state<EmailDraft | null>(null);
-	let visibleDraft = $state<EmailDraft | null>(null);
-	let appState = $state<BuilderAppState>({ version: 1, value: {} });
-	let recentDraftChanges = $state<RecentDraftChange[]>([]);
+	let hostState = $state(createInitialBuilderHostState());
 	let isRunning = $state(false);
 	let errorText = $state('');
 	let nextMessageId = 1;
@@ -89,18 +59,13 @@ export function createDevHarnessState() {
 	}
 
 	function resetGuideAnswers() {
-		guideAnswersByQuestionId = {
-			...DEFAULT_GUIDE_ANSWERS
-		};
+		guideAnswersByQuestionId = {};
 	}
 
 	function reset() {
 		messages = [];
 		replyText = '';
-		preparedDraft = null;
-		visibleDraft = null;
-		appState = { version: 1, value: {} };
-		recentDraftChanges = [];
+		hostState = createInitialBuilderHostState();
 		errorText = '';
 		nextMessageId = 1;
 	}
@@ -147,21 +112,6 @@ export function createDevHarnessState() {
 		messages = [...messages, createChatMessage('assistant', text)];
 	}
 
-	function patchAppState(patch: Record<string, unknown>) {
-		const currentValue =
-			appState.value && typeof appState.value === 'object' && !Array.isArray(appState.value)
-				? appState.value
-				: {};
-
-		appState = {
-			version: appState.version + 1,
-			value: {
-				...currentValue,
-				...patch
-			}
-		};
-	}
-
 	function handleRuntimeEvent(event: BuilderAppOutputEvent) {
 		if (event.type === 'assistantDelta') {
 			appendAssistantDelta(event.text);
@@ -173,41 +123,12 @@ export function createDevHarnessState() {
 			return;
 		}
 
-		if (event.type === 'appStateReplace') {
-			appState = event.appState;
-			return;
-		}
-
-		if (event.type === 'appStatePatch') {
-			patchAppState(event.patch);
-			return;
-		}
-
-		if (event.type === 'emailDraftReplace') {
-			if (event.visible === false && !visibleDraft) {
-				preparedDraft = event.emailDraft;
-			} else {
-				visibleDraft = event.emailDraft;
-			}
-			return;
-		}
-
-		if (event.type === 'emailDraftPatch' && event.patch && visibleDraft) {
-			visibleDraft = applyEmailDraftPatch(visibleDraft, event.patch);
-			recentDraftChanges = [
-				...recentDraftChanges,
-				{
-					summary: 'Dev harness applied runtime patch.',
-					changedFields: changedFieldsForPatch(event.patch),
-					createdAt: Date.now()
-				}
-			].slice(-5);
-			return;
-		}
-
 		if (event.type === 'fail') {
 			errorText = event.errorText;
+			return;
 		}
+
+		hostState = applyBuilderHostEvent(hostState, event).state;
 	}
 
 	async function runRuntime(body: unknown) {
@@ -233,7 +154,7 @@ export function createDevHarnessState() {
 				action: 'start',
 				input: {
 					initialMessage: normalizedInitialMessage,
-					appState
+					appState: hostState.appState
 				}
 			});
 		} catch (error) {
@@ -267,10 +188,10 @@ export function createDevHarnessState() {
 							role: message.role,
 							text: message.text
 					})),
-					emailDraft: visibleDraft ?? undefined,
-					preparedEmailDraft: preparedDraft ?? undefined,
-					recentEvents: recentDraftChanges,
-					appState
+					emailDraft: hostState.emailDraft ?? undefined,
+					preparedEmailDraft: hostState.preparedEmailDraft ?? undefined,
+					recentEvents: hostState.recentEvents,
+					appState: hostState.appState
 				}
 			});
 		} catch (error) {
@@ -297,10 +218,10 @@ export function createDevHarnessState() {
 			return messages;
 		},
 		get preparedDraft() {
-			return preparedDraft;
+			return hostState.preparedEmailDraft;
 		},
 		get visibleDraft() {
-			return visibleDraft;
+			return hostState.emailDraft;
 		},
 		get isRunning() {
 			return isRunning;

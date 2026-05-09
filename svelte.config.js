@@ -9,7 +9,8 @@ const config = {
 		alias: {
 			$blueprint: 'src/blueprint',
 			$devHarness: 'src/dev-harness',
-			$runtime: 'src/runtime'
+			$runtime: 'src/runtime',
+			$runtimeHost: 'src/runtime-host'
 		}
 	},
 	vitePlugin: {

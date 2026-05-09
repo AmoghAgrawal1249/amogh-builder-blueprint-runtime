@@ -1,5 +1,6 @@
 import { streamBuilderEvents } from '$runtime/ndjson';
 import { createRuntimeContext } from '$runtime/app.server';
+import { createLocalBuilderHost } from '$runtimeHost/local-host';
 import type {
 	BuilderAppContinueTurnInput,
 	BuilderAppStartTurnInput
@@ -20,38 +21,17 @@ type DevHarnessRunInput =
 	  };
 
 const { runtime } = createRuntimeContext();
+const host = createLocalBuilderHost(runtime);
 
 export const POST: RequestHandler = async ({ request }) => {
 	const body = (await request.json()) as DevHarnessRunInput;
 
 	if (body.action === 'start') {
-		return streamBuilderEvents(async (emit) => {
-			const startEvents = await runtime.startTurn(
-				{
-					...body.input,
-					handlers: {}
-				},
-				emit
-			);
-			const backgroundEvents = await runtime.backgroundJob({
-				initialMessage: body.input.initialMessage,
-				appState: body.input.appState
-			});
-
-			return [...startEvents, ...backgroundEvents];
-		});
+		return streamBuilderEvents((emit) => host.start(body.input, emit));
 	}
 
 	if (body.action === 'continue') {
-		return streamBuilderEvents((emit) =>
-			runtime.continueTurn(
-				{
-					...body.input,
-					handlers: {}
-				},
-				emit
-			)
-		);
+		return streamBuilderEvents((emit) => host.continueTurn(body.input, emit));
 	}
 
 	return new Response('Unknown dev harness action.', { status: 400 });
