@@ -3,8 +3,9 @@ import type { BringTheFirmExamples } from './types';
 export const stakeholderActivityExamples = {
 	slug: 'stakeholder-activity',
 	description: 'Recommendations when strategic accounts show new stakeholder activity.',
+	// The AI sometimes uses this text more literally than it should, so write it as user-facing question copy.
 	questionGuidance:
-		'Ask which stakeholder movement or account tier should be considered important enough to notify.',
+		'Which stakeholder movement or account tier should be important enough to notify?',
 	examples: [
 		{
 			slug: 'new-stakeholder-specialty-match',

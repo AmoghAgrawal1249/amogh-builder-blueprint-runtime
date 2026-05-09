@@ -3,8 +3,9 @@ import type { BringTheFirmExamples } from './types';
 export const pursuitStageExamples = {
 	slug: 'pursuit-stage',
 	description: 'Recommendations for specialists to add when a pursuit reaches proposal stage.',
+	// The AI sometimes uses this text more literally than it should, so write it as user-facing question copy.
 	questionGuidance:
-		'Ask which pursuit stage, service line, or proposal risk should trigger the recommendation.',
+		'Which pursuit stage, service line, or proposal risk should trigger the recommendation?',
 	examples: [
 		{
 			slug: 'proposal-specialist-match',

@@ -3,8 +3,9 @@ import type { BringTheFirmExamples } from './types';
 export const clientMeetingExamples = {
 	slug: 'client-meeting',
 	description: 'Recommendations for colleagues to bring into scheduled client meetings.',
+	// The AI sometimes uses this text more literally than it should, so write it as user-facing question copy.
 	questionGuidance:
-		'Ask which ranking signal should matter most when more than one colleague could help.',
+		'Which ranking signal should matter most when more than one colleague could help?',
 	examples: [
 		{
 			slug: 'calendar-meeting-industry-match',

@@ -3,8 +3,9 @@ import type { BringTheFirmExamples } from './types';
 export const dormantAccountExamples = {
 	slug: 'dormant-account',
 	description: 'Recommendations for reactivating accounts that have been quiet.',
+	// The AI sometimes uses this text more literally than it should, so write it as user-facing question copy.
 	questionGuidance:
-		'Ask what dormant-account window or relationship signal should control the alert.',
+		'What dormant-account window or relationship signal should control the alert?',
 	examples: [
 		{
 			slug: 'dormant-account-check-in',
