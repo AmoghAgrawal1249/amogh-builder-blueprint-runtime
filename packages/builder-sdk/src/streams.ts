@@ -5,12 +5,6 @@ export type TranscriptMessage = {
 	text: string;
 };
 
-export type EmailBuilderEventContext = {
-	summary: string;
-	changedFields: string[];
-	createdAt: number;
-};
-
 export type ChatReplyDeltaHandler = (delta: string) => void | Promise<void>;
 
 export type ChatReplyStreamHandlers = {
@@ -24,7 +18,6 @@ export type EmailBuilderTurnStreamHandlers = {
 export type EmailBuilderTurnStreamResult = {
 	text: string;
 	patch: EmailDraftPatch | null;
-	patchIntent: 'none' | 'noop' | 'meaningful';
 };
 
 const UPDATE_EMAIL_DRAFT_TOOL_NAME = 'update_email_draft';
@@ -332,7 +325,6 @@ export async function readEmailBuilderTurnStream(
 
 	return {
 		text,
-		patch,
-		patchIntent: patch ? 'meaningful' : 'none'
+		patch
 	};
 }

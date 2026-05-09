@@ -33,9 +33,7 @@ export const pursuitStageExamples = {
 							'Suggested next step: invite them to the proposal working session.'
 						]
 					}
-				],
-				fireReason:
-					'The email fires when a pursuit reaches the configured proposal stage and a colleague has matching specialty or deal experience.'
+				]
 			}
 		}
 	]

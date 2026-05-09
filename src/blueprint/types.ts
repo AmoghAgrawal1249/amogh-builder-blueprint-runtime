@@ -8,7 +8,6 @@ export type {
 	GuideTextQuestion
 } from '@overbase/builder-sdk/catalog';
 export type {
-	EmailBuilderEventContext,
 	EmailBuilderTurnStreamHandlers,
 	EmailBuilderTurnStreamResult,
 	TranscriptMessage

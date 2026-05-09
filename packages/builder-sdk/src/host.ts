@@ -8,11 +8,11 @@ import type {
 import type { BuilderAppManifest } from './catalog.js';
 import {
 	applyEmailDraftPatch,
-	getEmailDraftChangedFields,
+	hasEmailDraftChanged,
+	hasEmailDraftPatchFields,
 	normalizeEmailDraft,
-	type EmailDraft
+	type EmailDraftState
 } from './email.js';
-import type { EmailBuilderEventContext } from './streams.js';
 
 export type BuilderAppRuntime = {
 	manifest: BuilderAppManifest;
@@ -29,9 +29,7 @@ export type BuilderAppRuntime = {
 
 export type BuilderHostState = {
 	appState: BuilderAppState;
-	emailDraft: EmailDraft | null;
-	preparedEmailDraft: EmailDraft | null;
-	recentEvents: EmailBuilderEventContext[];
+	emailDraftState: EmailDraftState | null;
 };
 
 export type BuilderHostEffects = {
@@ -47,10 +45,6 @@ export type BuilderHostReduction = {
 	effects: BuilderHostEffects;
 };
 
-export type ApplyBuilderHostEventOptions = {
-	now?: number;
-};
-
 export const BUILDER_HOST_APP_STATE_VERSION = 1;
 
 export function createInitialBuilderHostState(
@@ -58,9 +52,7 @@ export function createInitialBuilderHostState(
 ): BuilderHostState {
 	return {
 		appState,
-		emailDraft: null,
-		preparedEmailDraft: null,
-		recentEvents: []
+		emailDraftState: null
 	};
 }
 
@@ -93,21 +85,12 @@ export function patchBuilderHostAppState(
 	};
 }
 
-function appendRecentEvent(
-	recentEvents: EmailBuilderEventContext[],
-	event: EmailBuilderEventContext
-) {
-	return [...recentEvents, event].slice(-5);
-}
-
 export function applyBuilderHostEvent(
 	state: BuilderHostState,
-	event: BuilderAppOutputEvent,
-	options: ApplyBuilderHostEventOptions = {}
+	event: BuilderAppOutputEvent
 ): BuilderHostReduction {
 	let nextState = state;
 	const effects = createEmptyBuilderHostEffects();
-	const now = options.now ?? Date.now();
 
 	if (event.type === 'assistantComplete') {
 		effects.assistantCompleteText = event.text;
@@ -130,39 +113,42 @@ export function applyBuilderHostEvent(
 		return { state: nextState, effects };
 	}
 
-	if (event.type === 'emailDraftReplace') {
+	if (event.type === 'emailDraftSet') {
 		const emailDraft = normalizeEmailDraft(event.emailDraft);
-		const visible = event.visible !== false;
 
 		nextState = {
 			...nextState,
-			preparedEmailDraft: emailDraft,
-			...(visible ? { emailDraft } : {})
+			emailDraftState: {
+				version: (nextState.emailDraftState?.version ?? 0) + 1,
+				visibility: event.visibility,
+				draft: emailDraft
+			}
 		};
 		return { state: nextState, effects };
 	}
 
 	if (event.type === 'emailDraftPatch') {
-		if (!nextState.emailDraft || !event.patch || event.patchIntent !== 'meaningful') {
+		if (
+			!nextState.emailDraftState ||
+			nextState.emailDraftState.visibility !== 'visible' ||
+			!hasEmailDraftPatchFields(event.patch)
+		) {
 			return { state: nextState, effects };
 		}
 
-		const emailDraft = applyEmailDraftPatch(nextState.emailDraft, event.patch);
-		const changedFields = getEmailDraftChangedFields(nextState.emailDraft, emailDraft);
+		const emailDraft = applyEmailDraftPatch(nextState.emailDraftState.draft, event.patch);
 
-		if (changedFields.length === 0) {
+		if (!hasEmailDraftChanged(nextState.emailDraftState.draft, emailDraft)) {
 			return { state: nextState, effects };
 		}
 
 		nextState = {
 			...nextState,
-			emailDraft,
-			preparedEmailDraft: emailDraft,
-			recentEvents: appendRecentEvent(nextState.recentEvents, {
-				summary: 'Runtime applied email draft patch.',
-				changedFields,
-				createdAt: now
-			})
+			emailDraftState: {
+				version: nextState.emailDraftState.version + 1,
+				visibility: 'visible',
+				draft: emailDraft
+			}
 		};
 		return { state: nextState, effects };
 	}
@@ -192,14 +178,13 @@ export function applyBuilderHostEvent(
 
 export function applyBuilderHostEvents(
 	state: BuilderHostState,
-	events: BuilderAppOutputEvent[],
-	options: ApplyBuilderHostEventOptions = {}
+	events: BuilderAppOutputEvent[]
 ): BuilderHostReduction {
 	let nextState = state;
 	const effects = createEmptyBuilderHostEffects();
 
 	for (const event of events) {
-		const reduction = applyBuilderHostEvent(nextState, event, options);
+		const reduction = applyBuilderHostEvent(nextState, event);
 		nextState = reduction.state;
 		effects.assistantCompleteText =
 			reduction.effects.assistantCompleteText ?? effects.assistantCompleteText;

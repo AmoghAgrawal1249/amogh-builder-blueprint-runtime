@@ -33,9 +33,7 @@ export const dormantAccountExamples = {
 							'Consider inviting them if the meeting touches {{relationship_context}}.'
 						]
 					}
-				],
-				fireReason:
-					'The email fires when a dormant account schedules new activity and a colleague has prior account relationship context.'
+				]
 			}
 		}
 	]

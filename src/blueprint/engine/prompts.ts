@@ -95,14 +95,10 @@ export function buildBringTheFirmRefinementSystemPrompt() {
 
 export function buildBringTheFirmRefinementUserPrompt(params: {
 	draft: EmailDraft;
-	recentEvents: unknown[];
 }) {
 	return [
 		'Current visible email draft JSON:',
 		JSON.stringify(params.draft),
-		params.recentEvents.length > 0
-			? ['Recent email draft events:', JSON.stringify(params.recentEvents)].join('\n')
-			: 'Recent email draft events: []',
 		'Respond to the user in normal text. If the draft should change, call update_email_draft.'
 	].join('\n');
 }

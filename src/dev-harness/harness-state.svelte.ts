@@ -188,9 +188,7 @@ export function createDevHarnessState() {
 							role: message.role,
 							text: message.text
 					})),
-					emailDraft: hostState.emailDraft ?? undefined,
-					preparedEmailDraft: hostState.preparedEmailDraft ?? undefined,
-					recentEvents: hostState.recentEvents,
+					emailDraftState: hostState.emailDraftState ?? undefined,
 					appState: hostState.appState
 				}
 			});
@@ -218,10 +216,14 @@ export function createDevHarnessState() {
 			return messages;
 		},
 		get preparedDraft() {
-			return hostState.preparedEmailDraft;
+			return hostState.emailDraftState?.visibility === 'hidden'
+				? hostState.emailDraftState.draft
+				: null;
 		},
 		get visibleDraft() {
-			return hostState.emailDraft;
+			return hostState.emailDraftState?.visibility === 'visible'
+				? hostState.emailDraftState.draft
+				: null;
 		},
 		get isRunning() {
 			return isRunning;

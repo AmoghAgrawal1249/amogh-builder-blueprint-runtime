@@ -33,9 +33,7 @@ export const clientMeetingExamples = {
 							'Review the attached colleague summary before the meeting.'
 						]
 					}
-				],
-				fireReason:
-					'The email fires when a client meeting is added and at least one colleague has matching industry or account context.'
+				]
 			}
 		}
 	]

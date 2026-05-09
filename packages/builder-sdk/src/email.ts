@@ -1,5 +1,3 @@
-export const EMAIL_DRAFT_CHANGED_FIELDS = ['to', 'cc', 'attachments', 'body', 'fireReason'] as const;
-
 export const EMAIL_DRAFT_LIMITS = {
 	recipient: 140,
 	recipients: 12,
@@ -9,11 +7,8 @@ export const EMAIL_DRAFT_LIMITS = {
 	bodyText: 1_000,
 	bulletItems: 8,
 	linkLabel: 120,
-	linkHref: 500,
-	fireReason: 600
+	linkHref: 500
 } as const;
-
-export type EmailDraftChangedField = (typeof EMAIL_DRAFT_CHANGED_FIELDS)[number];
 
 export type EmailParagraphBlock = {
 	type: 'paragraph';
@@ -38,33 +33,19 @@ export type EmailDraft = {
 	cc: string[];
 	attachments: string[];
 	body: EmailBodyBlock[];
-	fireReason: string;
 };
 
-export type EmailDraftPatchOperation =
-	| {
-			type: 'setTo';
-			to: string[];
-	  }
-	| {
-			type: 'setCc';
-			cc: string[];
-	  }
-	| {
-			type: 'setAttachments';
-			attachments: string[];
-	  }
-	| {
-			type: 'setBody';
-			body: EmailBodyBlock[];
-	  }
-	| {
-			type: 'setFireReason';
-			fireReason: string;
-	  };
-
 export type EmailDraftPatch = {
-	operations: EmailDraftPatchOperation[];
+	to?: string[];
+	cc?: string[];
+	attachments?: string[];
+	body?: EmailBodyBlock[];
+};
+
+export type EmailDraftState = {
+	version: number;
+	visibility: 'hidden' | 'visible';
+	draft: EmailDraft;
 };
 
 export function createDefaultEmailDraft(): EmailDraft {
@@ -72,8 +53,7 @@ export function createDefaultEmailDraft(): EmailDraft {
 		to: [],
 		cc: [],
 		attachments: [],
-		body: [],
-		fireReason: ''
+		body: []
 	};
 }
 
@@ -157,30 +137,15 @@ export function normalizeEmailDraft(draft: EmailDraft): EmailDraft {
 		to: normalizeRecipients(draft.to),
 		cc: normalizeRecipients(draft.cc),
 		attachments: normalizeAttachments(draft.attachments),
-		body: normalizeEmailBody(draft.body),
-		fireReason: clampMultilineText(draft.fireReason, EMAIL_DRAFT_LIMITS.fireReason)
+		body: normalizeEmailBody(draft.body)
 	};
 }
 
-export function getEmailDraftChangedFields(
-	before: EmailDraft,
-	after: EmailDraft
-): EmailDraftChangedField[] {
+export function hasEmailDraftChanged(before: EmailDraft, after: EmailDraft) {
 	const normalizedBefore = normalizeEmailDraft(before);
 	const normalizedAfter = normalizeEmailDraft(after);
-	const changedFields: EmailDraftChangedField[] = [];
 
-	for (const field of EMAIL_DRAFT_CHANGED_FIELDS) {
-		if (JSON.stringify(normalizedBefore[field]) !== JSON.stringify(normalizedAfter[field])) {
-			changedFields.push(field);
-		}
-	}
-
-	return changedFields;
-}
-
-export function hasEmailDraftChanged(before: EmailDraft, after: EmailDraft) {
-	return getEmailDraftChangedFields(before, after).length > 0;
+	return JSON.stringify(normalizedBefore) !== JSON.stringify(normalizedAfter);
 }
 
 export function applyEmailDraftPatch(draft: EmailDraft, patch: EmailDraftPatch): EmailDraft {
@@ -188,39 +153,36 @@ export function applyEmailDraftPatch(draft: EmailDraft, patch: EmailDraftPatch):
 		to: [...draft.to],
 		cc: [...draft.cc],
 		attachments: [...draft.attachments],
-		body: [...draft.body],
-		fireReason: draft.fireReason
+		body: [...draft.body]
 	};
 
-	for (const operation of patch.operations) {
-		switch (operation.type) {
-			case 'setTo':
-				nextDraft.to = operation.to;
-				break;
-			case 'setCc':
-				nextDraft.cc = operation.cc;
-				break;
-			case 'setAttachments':
-				nextDraft.attachments = operation.attachments;
-				break;
-			case 'setBody':
-				nextDraft.body = operation.body;
-				break;
-			case 'setFireReason':
-				nextDraft.fireReason = operation.fireReason;
-				break;
-		}
+	if (patch.to) {
+		nextDraft.to = patch.to;
+	}
+
+	if (patch.cc) {
+		nextDraft.cc = patch.cc;
+	}
+
+	if (patch.attachments) {
+		nextDraft.attachments = patch.attachments;
+	}
+
+	if (patch.body) {
+		nextDraft.body = patch.body;
 	}
 
 	return normalizeEmailDraft(nextDraft);
 }
 
-export function summarizeEmailDraftEdit(changedFields: EmailDraftChangedField[]) {
-	if (changedFields.length === 0) {
-		return 'No draft fields changed.';
-	}
-
-	return `User edited ${changedFields.join(', ')}.`;
+export function hasEmailDraftPatchFields(patch: EmailDraftPatch | null): patch is EmailDraftPatch {
+	return Boolean(
+		patch &&
+			(patch.to !== undefined ||
+				patch.cc !== undefined ||
+				patch.attachments !== undefined ||
+				patch.body !== undefined)
+	);
 }
 
 export const emailBodyBlockJsonSchema = {
@@ -281,89 +243,34 @@ export const emailDraftJsonSchema = {
 			type: 'array',
 			items: emailBodyBlockJsonSchema,
 			maxItems: EMAIL_DRAFT_LIMITS.bodyBlocks
-		},
-		fireReason: {
-			type: 'string',
-			description: 'A short explanation of exactly why this email notification fires.'
 		}
 	},
-	required: ['to', 'cc', 'attachments', 'body', 'fireReason']
+	required: ['to', 'cc', 'attachments', 'body']
 } as const;
 
 export const emailDraftPatchJsonSchema = {
 	type: 'object',
 	additionalProperties: false,
 	properties: {
-		operations: {
+		to: {
 			type: 'array',
-			items: {
-				anyOf: [
-					{
-						type: 'object',
-						additionalProperties: false,
-						properties: {
-							type: { type: 'string', enum: ['setTo'] },
-							to: {
-								type: 'array',
-								items: { type: 'string' },
-								maxItems: EMAIL_DRAFT_LIMITS.recipients
-							}
-						},
-						required: ['type', 'to']
-					},
-					{
-						type: 'object',
-						additionalProperties: false,
-						properties: {
-							type: { type: 'string', enum: ['setCc'] },
-							cc: {
-								type: 'array',
-								items: { type: 'string' },
-								maxItems: EMAIL_DRAFT_LIMITS.recipients
-							}
-						},
-						required: ['type', 'cc']
-					},
-					{
-						type: 'object',
-						additionalProperties: false,
-						properties: {
-							type: { type: 'string', enum: ['setAttachments'] },
-							attachments: {
-								type: 'array',
-								items: { type: 'string' },
-								maxItems: EMAIL_DRAFT_LIMITS.attachments
-							}
-						},
-						required: ['type', 'attachments']
-					},
-					{
-						type: 'object',
-						additionalProperties: false,
-						properties: {
-							type: { type: 'string', enum: ['setBody'] },
-							body: {
-								type: 'array',
-								items: emailBodyBlockJsonSchema,
-								maxItems: EMAIL_DRAFT_LIMITS.bodyBlocks
-							}
-						},
-						required: ['type', 'body']
-					},
-					{
-						type: 'object',
-						additionalProperties: false,
-						properties: {
-							type: { type: 'string', enum: ['setFireReason'] },
-							fireReason: { type: 'string' }
-						},
-						required: ['type', 'fireReason']
-					}
-				]
-			},
-			minItems: 1,
-			maxItems: 5
+			items: { type: 'string' },
+			maxItems: EMAIL_DRAFT_LIMITS.recipients
+		},
+		cc: {
+			type: 'array',
+			items: { type: 'string' },
+			maxItems: EMAIL_DRAFT_LIMITS.recipients
+		},
+		attachments: {
+			type: 'array',
+			items: { type: 'string' },
+			maxItems: EMAIL_DRAFT_LIMITS.attachments
+		},
+		body: {
+			type: 'array',
+			items: emailBodyBlockJsonSchema,
+			maxItems: EMAIL_DRAFT_LIMITS.bodyBlocks
 		}
-	},
-	required: ['operations']
+	}
 } as const;

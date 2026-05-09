@@ -33,9 +33,7 @@ export const stakeholderActivityExamples = {
 							'Suggested use: prepare an introduction path before the next account meeting.'
 						]
 					}
-				],
-				fireReason:
-					'The email fires when a strategic account has new stakeholder activity and a colleague has relevant relationship or specialty context.'
+				]
 			}
 		}
 	]

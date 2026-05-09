@@ -2,6 +2,7 @@ import {
 	applyEmailDraftPatch,
 	emailDraftJsonSchema,
 	emailDraftPatchJsonSchema,
+	hasEmailDraftPatchFields,
 	normalizeEmailDraft,
 	type EmailDraft
 } from '@overbase/builder-sdk/email';
@@ -27,7 +28,6 @@ import type {
 	BringTheFirmExampleCandidate,
 	BringTheFirmExamplesCandidate,
 	BringTheFirmRouteResult,
-	EmailBuilderEventContext,
 	EmailBuilderTurnStreamHandlers,
 	EmailBuilderTurnStreamResult,
 	TranscriptMessage
@@ -141,15 +141,13 @@ export async function applyBringTheFirmInitialAnswer(params: {
 export async function streamBringTheFirmBuilderTurn(params: {
 	transcript: TranscriptMessage[];
 	draft: EmailDraft;
-	recentEvents: EmailBuilderEventContext[];
 	handlers: EmailBuilderTurnStreamHandlers;
 	openAIConfig: OpenAIConfig;
 }): Promise<EmailBuilderTurnStreamResult> {
 	const { apiKey, model, reasoningEffort } = params.openAIConfig;
 	const refinementSystemPrompt = buildBringTheFirmRefinementSystemPrompt();
 	const refinementUserPrompt = buildBringTheFirmRefinementUserPrompt({
-		draft: params.draft,
-		recentEvents: params.recentEvents
+		draft: params.draft
 	});
 	const response = await fetch(OPENAI_RESPONSES_URL, {
 		method: 'POST',
@@ -175,8 +173,7 @@ export async function streamBringTheFirmBuilderTurn(params: {
 					type: 'function',
 					name: UPDATE_EMAIL_DRAFT_TOOL_NAME,
 					description: 'Patch the visible email notification draft.',
-					parameters: emailDraftPatchJsonSchema,
-					strict: true
+					parameters: emailDraftPatchJsonSchema
 				}
 			],
 			parallel_tool_calls: false,
@@ -192,25 +189,16 @@ export async function streamBringTheFirmBuilderTurn(params: {
 	}
 
 	const result = await readEmailBuilderTurnStream(response, params.handlers);
-	const meaningfulOperations =
-		result.patch?.operations.filter((operation) => {
-			const nextDraft = applyEmailDraftPatch(params.draft, { operations: [operation] });
-			return JSON.stringify(nextDraft) !== JSON.stringify(normalizeEmailDraft(params.draft));
-		}) ?? null;
-	const patchIntent = result.patch
-		? meaningfulOperations && meaningfulOperations.length > 0
-			? 'meaningful'
-			: 'noop'
-		: 'none';
+	const normalizedDraft = normalizeEmailDraft(params.draft);
+	const nextDraft = hasEmailDraftPatchFields(result.patch)
+		? applyEmailDraftPatch(params.draft, result.patch)
+		: null;
+	const patchChanged = nextDraft
+		? JSON.stringify(nextDraft) !== JSON.stringify(normalizedDraft)
+		: false;
 
 	return {
 		...result,
-		patch:
-			patchIntent === 'meaningful' && meaningfulOperations
-				? {
-						operations: meaningfulOperations
-					}
-				: null,
-		patchIntent
+		patch: patchChanged ? result.patch : null
 	};
 }

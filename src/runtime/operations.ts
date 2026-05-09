@@ -88,23 +88,15 @@ function toDraftExample(example: {
 function toAssistantPatchResultEvents(result: {
 	text: string;
 	patch: EmailDraftPatch | null;
-	patchIntent: 'none' | 'noop' | 'meaningful';
 }): BuilderAppOutputEvent[] {
 	return [
 		{
 			type: 'assistantComplete',
-			text:
-				result.text.trim() ||
-				(result.patchIntent === 'meaningful'
-					? 'Updated the draft.'
-					: result.patchIntent === 'noop'
-						? 'No changes needed.'
-						: '')
+			text: result.text.trim() || (result.patch ? 'Updated the draft.' : 'No changes needed.')
 		},
 		{
 			type: 'emailDraftPatch',
-			patch: result.patch,
-			patchIntent: result.patchIntent
+			patch: result.patch
 		},
 		{ type: 'complete' }
 	];
@@ -145,14 +137,15 @@ export function createBringTheFirmRuntime(deps: RuntimeDependencies) {
 
 	async function continueTurn(input: BuilderAppContinueTurnInput, emit?: EmitEvent) {
 		const openAIConfig = deps.getOpenAIConfig();
+		const draftState = input.emailDraftState;
 
-		if (!input.emailDraft && input.preparedEmailDraft) {
+		if (draftState?.visibility === 'hidden') {
 			const bringTheFirmState = getBringTheFirmAppState(input.appState);
 			const emailDraft = await applyBringTheFirmInitialAnswer({
 				initialMessage: input.initialMessage,
 				initialQuestion: bringTheFirmState.initialQuestionText ?? '',
 				initialAnswer: input.userMessage,
-				draft: input.preparedEmailDraft,
+				draft: draftState.draft,
 				openAIConfig
 			});
 
@@ -161,19 +154,18 @@ export function createBringTheFirmRuntime(deps: RuntimeDependencies) {
 					type: 'assistantComplete',
 					text: 'I adjusted the draft based on that and put it in the panel.'
 				},
-				{ type: 'emailDraftReplace', emailDraft },
+				{ type: 'emailDraftSet', emailDraft, visibility: 'visible' },
 				{ type: 'complete' }
 			] satisfies BuilderAppOutputEvent[];
 		}
 
-		if (!input.emailDraft) {
+		if (draftState?.visibility !== 'visible') {
 			throw new Error('The visible email draft is unavailable.');
 		}
 
 		const result = await streamBringTheFirmBuilderTurn({
 			transcript: input.transcript,
-			draft: input.emailDraft,
-			recentEvents: input.recentEvents,
+			draft: draftState.draft,
 			openAIConfig,
 			handlers: {
 				onTextDelta: async (delta) => {
@@ -216,9 +208,9 @@ export function createBringTheFirmRuntime(deps: RuntimeDependencies) {
 
 		return [
 			{
-				type: 'emailDraftReplace',
+				type: 'emailDraftSet',
 				emailDraft: adapted.emailDraft,
-				visible: false
+				visibility: 'hidden'
 			},
 			{
 				type: 'appStatePatch',

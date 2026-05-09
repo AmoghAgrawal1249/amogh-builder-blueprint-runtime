@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { createDevHarnessState } from './harness-state.svelte';
+	import type { GuideQuestion } from '$blueprint';
 
 	type DevHarnessState = ReturnType<typeof createDevHarnessState>;
 
@@ -11,6 +12,10 @@
 
 	function getInputValue(event: Event) {
 		return (event.currentTarget as HTMLInputElement | HTMLTextAreaElement).value;
+	}
+
+	function getTextQuestionPlaceholder(question: GuideQuestion) {
+		return question.type === 'text' ? question.placeholder : '';
 	}
 </script>
 
@@ -52,11 +57,11 @@
 							disabled={harness.isRunning}
 							oninput={(event) => harness.setGuideAnswer(question.id, getInputValue(event))}
 						/>
-					{:else}
+					{:else if question.type === 'text'}
 						<textarea
 							value={harness.getGuideAnswer(question.id)}
 							class="mt-3 h-24 w-full resize-none rounded-sm border border-zinc-200 bg-white px-3 py-2 text-sm leading-5 outline-none focus:border-zinc-400"
-							placeholder={question.placeholder}
+							placeholder={getTextQuestionPlaceholder(question)}
 							disabled={harness.isRunning}
 							oninput={(event) => harness.setGuideAnswer(question.id, getInputValue(event))}
 						></textarea>

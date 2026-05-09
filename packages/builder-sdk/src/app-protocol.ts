@@ -1,5 +1,5 @@
-import type { EmailDraft, EmailDraftPatch } from './email.js';
-import type { EmailBuilderEventContext, TranscriptMessage } from './streams.js';
+import type { EmailDraft, EmailDraftPatch, EmailDraftState } from './email.js';
+import type { TranscriptMessage } from './streams.js';
 
 export type { BuilderAppManifest } from './catalog.js';
 
@@ -22,9 +22,7 @@ export type BuilderAppContinueTurnInput = {
 	initialMessage: string;
 	transcript: TranscriptMessage[];
 	userMessage: string;
-	emailDraft?: EmailDraft;
-	preparedEmailDraft?: EmailDraft;
-	recentEvents: EmailBuilderEventContext[];
+	emailDraftState?: EmailDraftState;
 	appState?: BuilderAppState;
 	handlers: BuilderAppTurnHandlers;
 };
@@ -37,7 +35,6 @@ export type BuilderAppBackgroundJobInput = {
 export type BuilderAppPatchResult = {
 	text: string;
 	patch: EmailDraftPatch | null;
-	patchIntent: 'none' | 'noop' | 'meaningful';
 };
 
 export type BuilderAppOutputEvent =
@@ -50,14 +47,13 @@ export type BuilderAppOutputEvent =
 			text: string;
 	  }
 	| {
-			type: 'emailDraftReplace';
+			type: 'emailDraftSet';
 			emailDraft: EmailDraft;
-			visible?: boolean;
+			visibility: EmailDraftState['visibility'];
 	  }
 	| {
 			type: 'emailDraftPatch';
 			patch: EmailDraftPatch | null;
-			patchIntent: 'none' | 'noop' | 'meaningful';
 	  }
 	| {
 			type: 'appStateReplace';
