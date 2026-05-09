@@ -20,23 +20,17 @@ export const bringTheFirmGuide = {
       customAnswerPlaceholder: "Describe your current program...",
     },
     {
-      id: "expertise-signal",
+      id: "confirm-availability",
       type: "choice",
-      title: "What kind of colleague should we look for?",
+      title:
+        "Should we confirm that colleagues are available before proposing them?",
       options: [
-        "Someone with relevant industry experience",
-        "Someone who knows the account personally",
-        "Someone with a matching service-line specialty",
-        "Someone who worked on a similar deal",
+        "Always confirm that colleagues are available",
+        "Confirm only when the colleague is more senior",
+        "Confirm only when the colleague is more junior",
+        "Never confirm",
       ],
-      customAnswerPlaceholder: "Describe the expertise you want...",
-    },
-    {
-      id: "delivery-channel",
-      type: "text",
-      title: "What context should the recommendation include?",
-      placeholder:
-        "Describe the client context, meeting notes, or expertise signals to include...",
+      customAnswerPlaceholder: "Explain when we should confirm...",
     },
   ],
 } satisfies GuideDefinition;
