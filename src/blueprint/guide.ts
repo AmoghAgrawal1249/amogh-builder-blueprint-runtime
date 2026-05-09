@@ -23,11 +23,11 @@ export const bringTheFirmGuide = {
       id: "confirm-availability",
       type: "choice",
       title:
-        "Should we confirm that colleagues are available before proposing them?",
+        "Should we confirm that folks are available before proposing them in these notifications?",
       options: [
-        "Always confirm that colleagues are available",
-        "Confirm only when the colleague is more senior",
-        "Confirm only when the colleague is more junior",
+        "Always confirm that folks are available",
+        "Confirm when the person being invited is more senior",
+        "Confirm when they're more junior",
         "Never confirm",
       ],
       customAnswerPlaceholder: "Explain when we should confirm...",
