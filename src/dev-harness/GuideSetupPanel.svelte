@@ -1,22 +1,13 @@
 <script lang="ts">
-	import type { createDevHarnessState } from './harness-state.svelte';
-	import type { GuideQuestion } from '$blueprint';
-
-	type DevHarnessState = ReturnType<typeof createDevHarnessState>;
+	import GuideChoiceQuestionField from './GuideChoiceQuestionField.svelte';
+	import GuideTextQuestionField from './GuideTextQuestionField.svelte';
+	import type { DevHarnessState } from './harness-state.svelte';
 
 	type Props = {
 		harness: DevHarnessState;
 	};
 
 	let { harness }: Props = $props();
-
-	function getInputValue(event: Event) {
-		return (event.currentTarget as HTMLInputElement | HTMLTextAreaElement).value;
-	}
-
-	function getTextQuestionPlaceholder(question: GuideQuestion) {
-		return question.type === 'text' ? question.placeholder : '';
-	}
 </script>
 
 <aside class="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] overflow-hidden border-r border-zinc-200 bg-zinc-50">
@@ -28,45 +19,11 @@
 
 		<div class="mt-4 grid gap-4">
 			{#each harness.guide.questions as question (question.id)}
-				<fieldset class="rounded-sm border border-zinc-200 bg-white p-3">
-					<legend class="px-1 text-sm font-medium text-zinc-900">{question.title}</legend>
-
-					{#if question.type === 'choice'}
-						<div class="mt-3 grid gap-2">
-							{#each question.options as option (option)}
-								<label
-									class="flex min-h-10 items-start gap-2 rounded-sm border border-zinc-200 px-3 py-2 text-sm leading-5 text-zinc-800 has-[:checked]:border-zinc-950 has-[:checked]:bg-zinc-50"
-								>
-									<input
-										type="radio"
-										name={question.id}
-										class="mt-1"
-										checked={harness.getGuideAnswer(question.id) === option}
-										disabled={harness.isRunning}
-										oninput={() => harness.setGuideAnswer(question.id, option)}
-									/>
-									<span>{option}</span>
-								</label>
-							{/each}
-						</div>
-
-						<input
-							value={harness.getChoiceCustomAnswer(question)}
-							class="mt-3 h-9 w-full rounded-sm border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-zinc-400"
-							placeholder={question.customAnswerPlaceholder}
-							disabled={harness.isRunning}
-							oninput={(event) => harness.setGuideAnswer(question.id, getInputValue(event))}
-						/>
-					{:else if question.type === 'text'}
-						<textarea
-							value={harness.getGuideAnswer(question.id)}
-							class="mt-3 h-24 w-full resize-none rounded-sm border border-zinc-200 bg-white px-3 py-2 text-sm leading-5 outline-none focus:border-zinc-400"
-							placeholder={getTextQuestionPlaceholder(question)}
-							disabled={harness.isRunning}
-							oninput={(event) => harness.setGuideAnswer(question.id, getInputValue(event))}
-						></textarea>
-					{/if}
-				</fieldset>
+				{#if question.type === 'choice'}
+					<GuideChoiceQuestionField {harness} {question} />
+				{:else if question.type === 'text'}
+					<GuideTextQuestionField {harness} {question} />
+				{/if}
 			{/each}
 
 			<details class="rounded-sm border border-zinc-200 bg-white">

@@ -7,7 +7,8 @@ import {
 	bringTheFirmManifest,
 	buildGuidedInitialMessage,
 	type GuideAnswersByQuestionId,
-	type GuideChoiceQuestion
+	type GuideChoiceQuestion,
+	type GuideDefinition
 } from '$blueprint';
 import { postRuntimeEvents } from './post-runtime-events';
 
@@ -18,7 +19,7 @@ export type ChatMessage = {
 };
 
 export function createDevHarnessState() {
-	const guide = bringTheFirmManifest.guide;
+	const guide: GuideDefinition = bringTheFirmManifest.guide;
 	let guideAnswersByQuestionId = $state<GuideAnswersByQuestionId>({});
 	let replyText = $state('');
 	let messages = $state<ChatMessage[]>([]);
@@ -215,7 +216,7 @@ export function createDevHarnessState() {
 		get messages() {
 			return messages;
 		},
-		get preparedDraft() {
+		get hiddenDraft() {
 			return hostState.emailDraftState?.visibility === 'hidden'
 				? hostState.emailDraftState.draft
 				: null;
@@ -246,3 +247,5 @@ export function createDevHarnessState() {
 		sendReply
 	};
 }
+
+export type DevHarnessState = ReturnType<typeof createDevHarnessState>;

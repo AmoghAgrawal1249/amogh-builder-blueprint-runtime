@@ -13,6 +13,6 @@
 	<GuideSetupPanel {harness} />
 	<HarnessChatPanel {harness} />
 	<aside class="min-h-0 border-l border-zinc-200">
-		<DraftJsonPanel draft={harness.visibleDraft} preparedDraft={harness.preparedDraft} />
+		<DraftJsonPanel visibleDraft={harness.visibleDraft} hiddenDraft={harness.hiddenDraft} />
 	</aside>
 </main>
