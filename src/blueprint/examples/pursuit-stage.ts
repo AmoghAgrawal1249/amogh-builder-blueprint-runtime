@@ -19,7 +19,7 @@ export const pursuitStageExamples = {
 			emailDraft: {
 				to: ['Pursuit owner'],
 				cc: ['Practice lead'],
-				attachments: ['Proposal Specialist Recommendations.pdf'],
+				attachments: ['Proposal Specialist Recommendations.xlsx'],
 				body: [
 					{
 						type: 'paragraph',

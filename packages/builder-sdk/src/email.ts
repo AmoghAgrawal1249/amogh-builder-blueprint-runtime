@@ -10,6 +10,12 @@ export const EMAIL_DRAFT_LIMITS = {
 	linkHref: 500
 } as const;
 
+export const EMAIL_ATTACHMENT_FORMAT = {
+	extension: 'xlsx',
+	shortLabel: 'XLSX',
+	label: 'Excel workbook'
+} as const;
+
 export type EmailParagraphBlock = {
 	type: 'paragraph';
 	text: string;
@@ -78,24 +84,24 @@ function normalizeRecipients(recipients: string[]) {
 	return Array.from(new Set(normalizedRecipients));
 }
 
-export function normalizePdfAttachmentName(value: string) {
-	const filename = value.trim().split(/[\\/]/).pop() ?? '';
-	const withoutQueryOrHash = filename.split(/[?#]/)[0] ?? '';
-	const sanitizedBaseName = withoutQueryOrHash
-		.replace(/\.[a-z0-9]+$/i, '')
+export function normalizeEmailAttachmentName(value: string) {
+	const withoutQueryOrHash = value.trim().split(/[?#]/)[0] ?? '';
+	const filename = withoutQueryOrHash.split(/[\\/]/).pop() ?? '';
+	const baseName = filename.replace(/\.[^.]+$/i, '');
+	const sanitizedBaseName = baseName
 		.replace(/[^a-zA-Z0-9 ._()-]+/g, '_')
 		.replace(/\s+/g, ' ')
 		.replace(/\.+$/g, '')
 		.trim();
 	const normalized = clampText(sanitizedBaseName, EMAIL_DRAFT_LIMITS.attachment);
 
-	return normalized ? `${normalized}.pdf` : '';
+	return normalized ? `${normalized}.${EMAIL_ATTACHMENT_FORMAT.extension}` : '';
 }
 
 function normalizeAttachments(attachments: string[]) {
 	const normalizedAttachments = attachments
 		.slice(0, EMAIL_DRAFT_LIMITS.attachments)
-		.map(normalizePdfAttachmentName)
+		.map(normalizeEmailAttachmentName)
 		.filter(Boolean);
 
 	return Array.from(new Set(normalizedAttachments));

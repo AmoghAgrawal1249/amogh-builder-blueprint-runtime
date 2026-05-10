@@ -19,7 +19,7 @@ export const dormantAccountExamples = {
 			emailDraft: {
 				to: ['Account owner'],
 				cc: [],
-				attachments: ['Dormant Account Context.pdf'],
+				attachments: ['Dormant Account Context.xlsx'],
 				body: [
 					{
 						type: 'paragraph',

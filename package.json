@@ -5,7 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"builder-sdk:build": "npm --prefix packages/builder-sdk run build",
-		"builder-sdk:check": "npm run builder-sdk:build",
+		"builder-sdk:check": "node scripts/check-builder-sdk-sync.mjs && npm run builder-sdk:build",
 		"dev": "npm run builder-sdk:build && vite dev",
 		"build": "npm run builder-sdk:build && vite build",
 		"preview": "vite preview",

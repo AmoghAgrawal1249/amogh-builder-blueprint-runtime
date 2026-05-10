@@ -19,7 +19,7 @@ export const stakeholderActivityExamples = {
 			emailDraft: {
 				to: ['Strategic account lead'],
 				cc: ['Client team owner'],
-				attachments: ['Stakeholder Activity Recommendations.pdf'],
+				attachments: ['Stakeholder Activity Recommendations.xlsx'],
 				body: [
 					{
 						type: 'paragraph',

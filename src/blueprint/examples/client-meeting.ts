@@ -19,7 +19,7 @@ export const clientMeetingExamples = {
 			emailDraft: {
 				to: ['Client team owner'],
 				cc: ['Relationship partner'],
-				attachments: ['Recommended Colleagues.pdf'],
+				attachments: ['Recommended Colleagues.xlsx'],
 				body: [
 					{
 						type: 'paragraph',
