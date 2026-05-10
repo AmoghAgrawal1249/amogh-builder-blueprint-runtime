@@ -19,7 +19,21 @@ export const stakeholderActivityExamples = {
 			emailDraft: {
 				to: ['Strategic account lead'],
 				cc: ['Client team owner'],
-				attachments: ['Stakeholder Activity Recommendations.xlsx'],
+				attachment: {
+					filename: 'Stakeholder Activity Recommendations.xlsx',
+					cells: [
+						['Account', 'Stakeholder', 'Source context', 'Colleague', 'Specialty'],
+						[
+							'{{account_name}}',
+							'{{stakeholder_name}}',
+							'{{source_context}}',
+							'{{colleague_name}}',
+							'{{specialty_context}}'
+						],
+						['Summit Robotics', 'New procurement lead', 'Prior portfolio company', 'Amara Jones', 'Supply chain'],
+						['Evergreen Transit', 'New operations sponsor', 'Shared industry event', 'Luis Romero', 'Public sector']
+					]
+				},
 				body: [
 					{
 						type: 'paragraph',

@@ -19,7 +19,21 @@ export const pursuitStageExamples = {
 			emailDraft: {
 				to: ['Pursuit owner'],
 				cc: ['Practice lead'],
-				attachments: ['Proposal Specialist Recommendations.xlsx'],
+				attachment: {
+					filename: 'Proposal Specialist Recommendations.xlsx',
+					cells: [
+						['Pursuit', 'Specialist', 'Service line', 'Credential', 'Suggested next step'],
+						[
+							'{{pursuit_name}}',
+							'{{colleague_name}}',
+							'{{service_line_or_deal_type}}',
+							'{{credential_summary}}',
+							'Invite to proposal working session'
+						],
+						['Regional expansion', 'Maya Chen', 'Commercial diligence', 'Recent logistics mandate', 'Review proposal scope'],
+						['Platform rollout', 'Theo Martin', 'Technology implementation', 'Enterprise migration credential', 'Join pricing call']
+					]
+				},
 				body: [
 					{
 						type: 'paragraph',

@@ -41,8 +41,10 @@ export const BRING_THE_FIRM_REFINEMENT_DRAFT_RULES = [
 	'Call update_email_draft at most once per turn, only when the visible email draft should change.',
 	'When changing the draft, send the smallest patch that achieves the requested change.',
 	'Preserve the Bring the firm use case: colleague recommendations tied to client, account, pursuit, meeting, or stakeholder context.',
-	'The draft fields are to, cc, attachments, and body.',
-	'Attachments are spreadsheet placeholder filenames only. Attachment names must end in .xlsx.',
+	'The draft fields are to, cc, attachment, and body.',
+	'The attachment field is either null or one spreadsheet object with filename and cells.',
+	'Spreadsheet cells represent a fixed 100 row by 26 column grid. Row 1 is normal editable content, not metadata.',
+	'Spreadsheet attachment filenames must end in .xlsx.',
 	'Keep the email compact: at most four body blocks, at most five bullets, and roughly 150 visible words.',
 	'Do not invent business-critical facts. If required information is missing, ask one focused question in chat text.'
 ] as const;

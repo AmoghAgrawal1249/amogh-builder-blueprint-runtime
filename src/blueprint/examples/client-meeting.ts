@@ -19,7 +19,20 @@ export const clientMeetingExamples = {
 			emailDraft: {
 				to: ['Client team owner'],
 				cc: ['Relationship partner'],
-				attachments: ['Recommended Colleagues.xlsx'],
+				attachment: {
+					filename: 'Recommended Colleagues.xlsx',
+					cells: [
+						['Colleague', 'Relevant client', 'Context', 'Recommended talking point'],
+						[
+							'{{colleague_name}}',
+							'{{similar_client}}',
+							'{{relevant_context}}',
+							'{{recommended_talking_point}}'
+						],
+						['Avery Chen', 'Northstar Health', 'Recent {{industry}} mandate', 'Implementation risks'],
+						['Mira Patel', 'Union Capital', 'Comparable board presentation', 'Decision timeline']
+					]
+				},
 				body: [
 					{
 						type: 'paragraph',

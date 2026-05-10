@@ -19,7 +19,21 @@ export const dormantAccountExamples = {
 			emailDraft: {
 				to: ['Account owner'],
 				cc: [],
-				attachments: ['Dormant Account Context.xlsx'],
+				attachment: {
+					filename: 'Dormant Account Context.xlsx',
+					cells: [
+						['Account', 'Contact', 'Dormant period', 'Colleague', 'Relevant context'],
+						[
+							'{{account_name}}',
+							'{{account_contact}}',
+							'{{dormant_period}}',
+							'{{colleague_name}}',
+							'{{matter_or_project_summary}}'
+						],
+						['Harbor Analytics', 'Dana Morris', '9 months', 'Priya Rao', 'Data platform rollout'],
+						['Cobalt Studio', 'Eli Grant', '6 months', 'Jon Bell', 'Brand integration work']
+					]
+				},
 				body: [
 					{
 						type: 'paragraph',
