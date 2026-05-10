@@ -10,6 +10,8 @@ export const bringTheFirmGuide = {
 			id: 'existing-program',
 			type: 'choice',
 			title: 'Does your firm already run a Bring the Firm program?',
+			helpText:
+				'Tell us whether this notification should support an established Bring the Firm motion or introduce the workflow from scratch.',
 			options: [
 				"Yes and it's widely adopted",
 				"Yes and it's only somewhat successful",
@@ -23,6 +25,8 @@ export const bringTheFirmGuide = {
 			type: 'choice',
 			title:
 				'Should we confirm that folks are available before proposing them in these notifications?',
+			helpText:
+				'Choose when the notification should check colleague availability before recommending them for a client meeting.',
 			options: [
 				'Always confirm that folks are available',
 				"Confirm when the person being invited is more senior",
