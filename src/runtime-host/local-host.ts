@@ -44,7 +44,7 @@ export function createLocalBuilderHost(runtime: BuilderAppRuntime) {
 		}
 
 		const backgroundEvents = await runtime.backgroundJob({
-			initialMessage: input.initialMessage,
+			setup: input.setup,
 			appState: hostState.appState
 		});
 

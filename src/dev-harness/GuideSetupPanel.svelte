@@ -18,6 +18,32 @@
 		</div>
 
 		<div class="mt-4 grid gap-4">
+			<div class="flex rounded-sm border border-zinc-200 bg-white p-1">
+				<button
+					type="button"
+					class={`h-7 flex-1 rounded-[2px] text-xs font-medium ${
+						harness.setupAction === 'submitted'
+							? 'bg-zinc-950 text-white'
+							: 'text-zinc-600 hover:bg-zinc-50'
+					}`}
+					onclick={() => harness.setSetupAction('submitted')}
+				>
+					Start as submitted
+				</button>
+				<button
+					type="button"
+					class={`h-7 flex-1 rounded-[2px] text-xs font-medium ${
+						harness.setupAction === 'skippedRemaining'
+							? 'bg-zinc-950 text-white'
+							: 'text-zinc-600 hover:bg-zinc-50 disabled:text-zinc-300 disabled:hover:bg-transparent'
+					}`}
+					disabled={!harness.canUseSkippedRemaining}
+					onclick={() => harness.setSetupAction('skippedRemaining')}
+				>
+					Start as skipped
+				</button>
+			</div>
+
 			{#each harness.guide.questions as question (question.id)}
 				{#if question.type === 'choice'}
 					<GuideChoiceQuestionField {harness} {question} />
@@ -34,6 +60,17 @@
 					value={harness.initialMessage}
 					readonly
 					class="h-40 w-full resize-none border-t border-zinc-200 bg-zinc-50 px-3 py-2 font-mono text-xs leading-5 text-zinc-900 outline-none"
+				></textarea>
+			</details>
+
+			<details class="rounded-sm border border-zinc-200 bg-white">
+				<summary class="cursor-pointer px-3 py-2 text-xs font-medium uppercase text-zinc-500">
+					Run setup JSON
+				</summary>
+				<textarea
+					value={harness.setupJson}
+					readonly
+					class="h-56 w-full resize-none border-t border-zinc-200 bg-zinc-50 px-3 py-2 font-mono text-xs leading-5 text-zinc-900 outline-none"
 				></textarea>
 			</details>
 		</div>

@@ -6,11 +6,6 @@ export {
 	listBringTheFirmExamples
 } from './examples';
 export {
-	buildGuidedInitialMessage,
-	type BuildGuidedInitialMessageParams,
-	type GuideAnswersByQuestionId
-} from './guide-message';
-export {
 	adaptBringTheFirmExample,
 	applyBringTheFirmInitialAnswer,
 	routeBringTheFirmBuilderRequest,

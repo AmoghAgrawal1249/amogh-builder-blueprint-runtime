@@ -1,12 +1,15 @@
-import type { BuilderAppOutputEvent } from '@overbase/builder-sdk/app-protocol';
+import {
+	createGuidedRunSetup,
+	type BuilderAppOutputEvent,
+	type BuilderGuideSetup,
+	type BuilderGuideSetupAction
+} from '@overbase/builder-sdk/app-protocol';
 import {
 	applyBuilderHostEvent,
 	createInitialBuilderHostState
 } from '@overbase/builder-sdk/host';
 import {
 	bringTheFirmManifest,
-	buildGuidedInitialMessage,
-	type GuideAnswersByQuestionId,
 	type GuideChoiceQuestion,
 	type GuideDefinition
 } from '$blueprint';
@@ -18,24 +21,34 @@ export type ChatMessage = {
 	text: string;
 };
 
+type GuideAnswersByQuestionId = Record<string, string>;
+
 export function createDevHarnessState() {
 	const guide: GuideDefinition = bringTheFirmManifest.guide;
 	let guideAnswersByQuestionId = $state<GuideAnswersByQuestionId>({});
 	let replyText = $state('');
 	let messages = $state<ChatMessage[]>([]);
 	let hostState = $state(createInitialBuilderHostState());
+	let setupAction = $state<BuilderGuideSetupAction>('submitted');
 	let isRunning = $state(false);
 	let errorText = $state('');
 	let nextMessageId = 1;
 
-	const initialMessage = $derived(
-		buildGuidedInitialMessage({
+	const setup = $derived(
+		createGuidedRunSetup({
 			title: bringTheFirmManifest.title,
 			description: bringTheFirmManifest.description,
 			guide,
-			answersByQuestionId: guideAnswersByQuestionId
+			action: setupAction,
+			answers: buildGuideSetup(setupAction).answers
 		})
 	);
+	const initialMessage = $derived(setup.initialMessage);
+	const setupJson = $derived(JSON.stringify(setup, null, 2));
+	const hasAnsweredEveryGuideQuestion = $derived(
+		guide.questions.every((question) => getGuideAnswer(question.id).trim().length > 0)
+	);
+	const canUseSkippedRemaining = $derived(!hasAnsweredEveryGuideQuestion);
 	const canStart = $derived(!isRunning && Boolean(initialMessage.trim()));
 	const canReply = $derived(!isRunning && Boolean(replyText.trim()) && messages.length > 0);
 	const latestAssistantIndex = $derived(
@@ -51,6 +64,10 @@ export function createDevHarnessState() {
 			...guideAnswersByQuestionId,
 			[questionId]: value
 		};
+
+		if (setupAction === 'skippedRemaining' && hasAnsweredEveryGuideQuestion) {
+			setupAction = 'submitted';
+		}
 	}
 
 	function getChoiceCustomAnswer(question: GuideChoiceQuestion) {
@@ -61,6 +78,27 @@ export function createDevHarnessState() {
 
 	function resetGuideAnswers() {
 		guideAnswersByQuestionId = {};
+	}
+
+	function setSetupAction(action: BuilderGuideSetupAction) {
+		if (action === 'skippedRemaining' && !canUseSkippedRemaining) {
+			return;
+		}
+
+		setupAction = action;
+	}
+
+	function buildGuideSetup(action: BuilderGuideSetupAction): BuilderGuideSetup {
+		return {
+			action,
+			answers: guide.questions
+				.map((question) => ({
+					questionId: question.id,
+					questionTitle: question.title,
+					answer: getGuideAnswer(question.id).trim()
+				}))
+				.filter((answer) => answer.answer.length > 0)
+		};
 	}
 
 	function reset() {
@@ -154,7 +192,7 @@ export function createDevHarnessState() {
 			await runRuntime({
 				action: 'start',
 				input: {
-					initialMessage: normalizedInitialMessage,
+					setup,
 					appState: hostState.appState
 				}
 			});
@@ -181,7 +219,7 @@ export function createDevHarnessState() {
 			await runRuntime({
 				action: 'continue',
 				input: {
-					initialMessage,
+					setup,
 					userMessage,
 					transcript: messages
 						.filter((message) => message.text.trim())
@@ -203,6 +241,15 @@ export function createDevHarnessState() {
 	return {
 		get initialMessage() {
 			return initialMessage;
+		},
+		get setupJson() {
+			return setupJson;
+		},
+		get setupAction() {
+			return setupAction;
+		},
+		get canUseSkippedRemaining() {
+			return canUseSkippedRemaining;
 		},
 		get guide() {
 			return guide;
@@ -242,6 +289,7 @@ export function createDevHarnessState() {
 		setGuideAnswer,
 		getChoiceCustomAnswer,
 		resetGuideAnswers,
+		setSetupAction,
 		reset,
 		start,
 		sendReply

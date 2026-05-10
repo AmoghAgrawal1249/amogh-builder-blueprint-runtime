@@ -8,6 +8,7 @@ import {
 	routeBringTheFirmBuilderRequest,
 	streamBringTheFirmBuilderTurn
 } from '$blueprint';
+import { buildBuilderRunSetupPromptText } from '@overbase/builder-sdk/app-protocol';
 import type {
 	BuilderAppBackgroundJobInput,
 	BuilderAppContinueTurnInput,
@@ -111,8 +112,9 @@ export function createBringTheFirmRuntime(deps: RuntimeDependencies) {
 			throw new Error('No Bring the firm examples are available.');
 		}
 
+		const setupPromptText = buildBuilderRunSetupPromptText(input.setup);
 		const routeResult = await routeBringTheFirmBuilderRequest({
-			initialMessage: input.initialMessage,
+			setupPromptText,
 			examples,
 			openAIConfig: fastOpenAIConfig
 		});
@@ -141,8 +143,9 @@ export function createBringTheFirmRuntime(deps: RuntimeDependencies) {
 
 		if (draftState?.visibility === 'hidden') {
 			const bringTheFirmState = getBringTheFirmAppState(input.appState);
+			const setupPromptText = buildBuilderRunSetupPromptText(input.setup);
 			const emailDraft = await applyBringTheFirmInitialAnswer({
-				initialMessage: input.initialMessage,
+				setupPromptText,
 				initialQuestion: bringTheFirmState.initialQuestionText ?? '',
 				initialAnswer: input.userMessage,
 				draft: draftState.draft,
@@ -199,8 +202,9 @@ export function createBringTheFirmRuntime(deps: RuntimeDependencies) {
 			throw new Error('No Bring the firm draft examples are available for these examples.');
 		}
 
+		const setupPromptText = buildBuilderRunSetupPromptText(input.setup);
 		const adapted = await adaptBringTheFirmExample({
-			initialMessage: input.initialMessage,
+			setupPromptText,
 			examples: toInitialQuestionExample(examples),
 			draftExamples,
 			openAIConfig

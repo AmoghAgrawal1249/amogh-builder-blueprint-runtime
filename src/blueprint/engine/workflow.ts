@@ -39,7 +39,7 @@ const BRING_THE_FIRM_ADAPT_TOOL_NAME = 'adapt_bring_the_firm_example';
 const BRING_THE_FIRM_INITIAL_ANSWER_TOOL_NAME = 'apply_initial_bring_the_firm_answer';
 
 export async function routeBringTheFirmBuilderRequest(params: {
-	initialMessage: string;
+	setupPromptText: string;
 	examples: BringTheFirmExamplesCandidate[];
 	openAIConfig: OpenAIConfig;
 }) {
@@ -71,7 +71,7 @@ export async function routeBringTheFirmBuilderRequest(params: {
 }
 
 export async function adaptBringTheFirmExample(params: {
-	initialMessage: string;
+	setupPromptText: string;
 	examples: BringTheFirmExamplesCandidate;
 	draftExamples: BringTheFirmExampleCandidate[];
 	openAIConfig: OpenAIConfig;
@@ -112,7 +112,7 @@ export async function adaptBringTheFirmExample(params: {
 }
 
 export async function applyBringTheFirmInitialAnswer(params: {
-	initialMessage: string;
+	setupPromptText: string;
 	initialQuestion: string;
 	initialAnswer: string;
 	draft: EmailDraft;

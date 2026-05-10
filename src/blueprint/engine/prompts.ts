@@ -21,14 +21,14 @@ function joinPromptLines(lines: readonly string[]) {
 }
 
 export function buildBringTheFirmRoutingPrompt(params: {
-	initialMessage: string;
+	setupPromptText: string;
 	examples: BringTheFirmExamplesCandidate[];
 }) {
 	return {
 		systemPrompt: joinPromptLines(BRING_THE_FIRM_ROUTING_RULES),
 		userPrompt: [
 			'Guided setup answers:',
-			params.initialMessage,
+			params.setupPromptText,
 			'Available examples:',
 			stringifyPromptData(params.examples)
 		].join('\n\n')
@@ -36,7 +36,7 @@ export function buildBringTheFirmRoutingPrompt(params: {
 }
 
 export function buildBringTheFirmExampleAdaptationPrompt(params: {
-	initialMessage: string;
+	setupPromptText: string;
 	examples: BringTheFirmExamplesCandidate;
 	draftExamples: BringTheFirmExampleCandidate[];
 }) {
@@ -49,7 +49,7 @@ export function buildBringTheFirmExampleAdaptationPrompt(params: {
 		]),
 		userPrompt: [
 			'Guided setup answers:',
-			params.initialMessage,
+			params.setupPromptText,
 			'Selected examples:',
 			stringifyPromptData(params.examples),
 			'Candidate email examples:',
@@ -59,7 +59,7 @@ export function buildBringTheFirmExampleAdaptationPrompt(params: {
 }
 
 export function buildBringTheFirmInitialAnswerPrompt(params: {
-	initialMessage: string;
+	setupPromptText: string;
 	initialQuestion: string;
 	initialAnswer: string;
 	draft: EmailDraft;
@@ -73,7 +73,7 @@ export function buildBringTheFirmInitialAnswerPrompt(params: {
 		]),
 		userPrompt: [
 			'Guided setup answers:',
-			params.initialMessage,
+			params.setupPromptText,
 			'Follow-up question:',
 			params.initialQuestion,
 			'User answer:',
