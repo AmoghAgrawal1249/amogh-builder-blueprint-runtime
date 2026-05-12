@@ -26,6 +26,12 @@ export type BringTheFirmExampleCandidate = {
 	emailDraft: EmailDraft;
 };
 
+export type BringTheFirmAiContext = {
+	personContext?: string;
+	conversationReason?: string;
+	notificationUse?: string;
+};
+
 export type BringTheFirmRouteResult = {
 	examplesSlug: string;
 	publicQuestion: string;

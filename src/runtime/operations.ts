@@ -8,6 +8,7 @@ import {
 	routeBringTheFirmBuilderRequest,
 	streamBringTheFirmBuilderTurn
 } from '$blueprint';
+import type { BringTheFirmAiContext } from '$blueprint';
 import { buildBuilderRunSetupPromptText } from '@overbase/builder-sdk/app-protocol';
 import type {
 	BuilderAppBackgroundJobInput,
@@ -17,6 +18,7 @@ import type {
 	BuilderAppState
 } from '@overbase/builder-sdk/app-protocol';
 import type { EmailDraft, EmailDraftPatch } from '@overbase/builder-sdk/email';
+import { BRING_THE_FIRM_DEFAULT_AI_CONTEXT } from '$blueprint/rules';
 import type { RuntimeDependencies } from './dependencies';
 
 type EmitEvent = (event: BuilderAppOutputEvent) => Promise<void> | void;
@@ -25,6 +27,7 @@ type BringTheFirmAppState = {
 	selectedExamplesSlug?: string;
 	selectedExampleSlug?: string;
 	initialQuestionText?: string;
+	aiContext?: BringTheFirmAiContext;
 };
 
 type BuilderAppInitialQuestionExample = {
@@ -50,13 +53,56 @@ function getStringField(value: Record<string, unknown>, field: string) {
 	return typeof fieldValue === 'string' ? fieldValue : undefined;
 }
 
-function getBringTheFirmAppState(appState?: BuilderAppState): BringTheFirmAppState {
+function getNonEmptyStringField(value: Record<string, unknown>, field: string) {
+	const fieldValue = getStringField(value, field)?.trim();
+
+	return fieldValue ? fieldValue : undefined;
+}
+
+function normalizeBringTheFirmAiContext(
+	aiContext?: BringTheFirmAiContext
+): BringTheFirmAiContext | undefined {
+	const normalized = {
+		personContext: aiContext?.personContext?.trim() || undefined,
+		conversationReason: aiContext?.conversationReason?.trim() || undefined,
+		notificationUse: aiContext?.notificationUse?.trim() || undefined
+	};
+
+	return Object.values(normalized).some(Boolean) ? normalized : undefined;
+}
+
+export function parseBringTheFirmAiContextFromAppState(
+	appState?: BuilderAppState
+): BringTheFirmAiContext | undefined {
+	const value = isRecord(appState?.value) ? appState.value : {};
+	const aiContext = isRecord(value.aiContext) ? value.aiContext : {};
+	const parsed = {
+		personContext: getNonEmptyStringField(aiContext, 'personContext'),
+		conversationReason: getNonEmptyStringField(aiContext, 'conversationReason'),
+		notificationUse: getNonEmptyStringField(aiContext, 'notificationUse')
+	};
+
+	return Object.values(parsed).some(Boolean) ? parsed : undefined;
+}
+
+function getBringTheFirmAiContext(appState?: BuilderAppState) {
+	const defaultAiContext = normalizeBringTheFirmAiContext(BRING_THE_FIRM_DEFAULT_AI_CONTEXT);
+	const appStateAiContext = parseBringTheFirmAiContextFromAppState(appState);
+
+	return normalizeBringTheFirmAiContext({
+		...defaultAiContext,
+		...appStateAiContext
+	});
+}
+
+export function getBringTheFirmAppState(appState?: BuilderAppState): BringTheFirmAppState {
 	const value = isRecord(appState?.value) ? appState.value : {};
 
 	return {
 		selectedExamplesSlug: getStringField(value, 'selectedExamplesSlug'),
 		selectedExampleSlug: getStringField(value, 'selectedExampleSlug'),
-		initialQuestionText: getStringField(value, 'initialQuestionText')
+		initialQuestionText: getStringField(value, 'initialQuestionText'),
+		aiContext: getBringTheFirmAiContext(appState)
 	};
 }
 
@@ -112,10 +158,12 @@ export function createBringTheFirmRuntime(deps: RuntimeDependencies) {
 			throw new Error('No Bring the firm examples are available.');
 		}
 
+		const bringTheFirmState = getBringTheFirmAppState(input.appState);
 		const setupPromptText = buildBuilderRunSetupPromptText(input.setup);
 		const routeResult = await routeBringTheFirmBuilderRequest({
 			setupPromptText,
 			examples,
+			aiContext: bringTheFirmState.aiContext,
 			openAIConfig: fastOpenAIConfig
 		});
 		const selectedExamples =
@@ -149,6 +197,7 @@ export function createBringTheFirmRuntime(deps: RuntimeDependencies) {
 				initialQuestion: bringTheFirmState.initialQuestionText ?? '',
 				initialAnswer: input.userMessage,
 				draft: draftState.draft,
+				aiContext: bringTheFirmState.aiContext,
 				openAIConfig
 			});
 
@@ -169,6 +218,7 @@ export function createBringTheFirmRuntime(deps: RuntimeDependencies) {
 		const result = await streamBringTheFirmBuilderTurn({
 			transcript: input.transcript,
 			draft: draftState.draft,
+			aiContext: getBringTheFirmAppState(input.appState).aiContext,
 			openAIConfig,
 			handlers: {
 				onTextDelta: async (delta) => {
@@ -207,6 +257,7 @@ export function createBringTheFirmRuntime(deps: RuntimeDependencies) {
 			setupPromptText,
 			examples: toInitialQuestionExample(examples),
 			draftExamples,
+			aiContext: bringTheFirmState.aiContext,
 			openAIConfig
 		});
 

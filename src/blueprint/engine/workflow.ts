@@ -24,6 +24,7 @@ import {
 	buildBringTheFirmRoutingPrompt
 } from './prompts';
 import type {
+	BringTheFirmAiContext,
 	BringTheFirmAdaptedExampleResult,
 	BringTheFirmExampleCandidate,
 	BringTheFirmExamplesCandidate,
@@ -41,6 +42,7 @@ const BRING_THE_FIRM_INITIAL_ANSWER_TOOL_NAME = 'apply_initial_bring_the_firm_an
 export async function routeBringTheFirmBuilderRequest(params: {
 	setupPromptText: string;
 	examples: BringTheFirmExamplesCandidate[];
+	aiContext?: BringTheFirmAiContext;
 	openAIConfig: OpenAIConfig;
 }) {
 	const prompt = buildBringTheFirmRoutingPrompt(params);
@@ -74,6 +76,7 @@ export async function adaptBringTheFirmExample(params: {
 	setupPromptText: string;
 	examples: BringTheFirmExamplesCandidate;
 	draftExamples: BringTheFirmExampleCandidate[];
+	aiContext?: BringTheFirmAiContext;
 	openAIConfig: OpenAIConfig;
 }) {
 	const prompt = buildBringTheFirmExampleAdaptationPrompt(params);
@@ -116,6 +119,7 @@ export async function applyBringTheFirmInitialAnswer(params: {
 	initialQuestion: string;
 	initialAnswer: string;
 	draft: EmailDraft;
+	aiContext?: BringTheFirmAiContext;
 	openAIConfig: OpenAIConfig;
 }) {
 	const prompt = buildBringTheFirmInitialAnswerPrompt(params);
@@ -141,13 +145,15 @@ export async function applyBringTheFirmInitialAnswer(params: {
 export async function streamBringTheFirmBuilderTurn(params: {
 	transcript: TranscriptMessage[];
 	draft: EmailDraft;
+	aiContext?: BringTheFirmAiContext;
 	handlers: EmailBuilderTurnStreamHandlers;
 	openAIConfig: OpenAIConfig;
 }): Promise<EmailBuilderTurnStreamResult> {
 	const { apiKey, model, reasoningEffort } = params.openAIConfig;
 	const refinementSystemPrompt = buildBringTheFirmRefinementSystemPrompt();
 	const refinementUserPrompt = buildBringTheFirmRefinementUserPrompt({
-		draft: params.draft
+		draft: params.draft,
+		aiContext: params.aiContext
 	});
 	const response = await fetch(OPENAI_RESPONSES_URL, {
 		method: 'POST',
