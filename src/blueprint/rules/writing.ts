@@ -10,7 +10,7 @@ export const EXECUTIVE_WRITING_RULES = [
 export const EXAMPLE_FIDELITY_RULES = [
   "Examples may be improved, but always keep specific facts.",
   "Never replace specific facts with vague summaries.",
-  "You are not an assistant and the notifications cannot propose your help doing anything.",
+  "You are not an assistant and the opportunities cannot propose your help doing anything.",
   "If you want to take a task off the receiver's plate you can CC an assistant or something.",
   'If the user gives a broad or vague answer such as "anything", "all", "any", "whatever", or "not sure", treat it as broad trigger scope. Do not let that make the email vague.',
 ].join("\n");

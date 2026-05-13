@@ -65,7 +65,7 @@ function normalizeBringTheFirmAiContext(
 	const normalized = {
 		personContext: aiContext?.personContext?.trim() || undefined,
 		conversationReason: aiContext?.conversationReason?.trim() || undefined,
-		notificationUse: aiContext?.notificationUse?.trim() || undefined
+		formatUse: aiContext?.formatUse?.trim() || undefined
 	};
 
 	return Object.values(normalized).some(Boolean) ? normalized : undefined;
@@ -79,7 +79,7 @@ export function parseBringTheFirmAiContextFromAppState(
 	const parsed = {
 		personContext: getNonEmptyStringField(aiContext, 'personContext'),
 		conversationReason: getNonEmptyStringField(aiContext, 'conversationReason'),
-		notificationUse: getNonEmptyStringField(aiContext, 'notificationUse')
+		formatUse: getNonEmptyStringField(aiContext, 'formatUse')
 	};
 
 	return Object.values(parsed).some(Boolean) ? parsed : undefined;

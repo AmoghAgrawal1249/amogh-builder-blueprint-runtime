@@ -29,7 +29,7 @@ export type BringTheFirmExampleCandidate = {
 export type BringTheFirmAiContext = {
 	personContext?: string;
 	conversationReason?: string;
-	notificationUse?: string;
+	formatUse?: string;
 };
 
 export type BringTheFirmRouteResult = {

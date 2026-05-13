@@ -1,5 +1,5 @@
 export const BRING_THE_FIRM_ROUTING_RULES = [
-  "You route a Bring the firm notification setup to the closest examples set.",
+  "You route a Bring the firm opportunity format setup to the closest examples set.",
   "Pick exactly one examples set from the provided list.",
   "Also write the exact public follow-up question to show the user.",
   "The public question must follow the questionGuidance of the selected examples set.",

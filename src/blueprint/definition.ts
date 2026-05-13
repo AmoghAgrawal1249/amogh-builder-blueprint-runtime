@@ -9,7 +9,7 @@ export const bringTheFirmManifest = {
 	details: {
 		paragraphs: [
 			'Bring the Firm reviews upcoming meetings and account signals to recommend colleagues who can add relevant expertise, relationships, or industry context before the next client conversation.',
-			'The guided setup captures how your firm runs colleague introductions, when availability should be confirmed, and which recommendation patterns should shape the notification your consultants receive.'
+			'The guided setup captures how your firm runs colleague introductions, when availability should be confirmed, and which recommendation patterns should shape the email format your consultants receive.'
 		]
 	},
 	mode: 'guided',

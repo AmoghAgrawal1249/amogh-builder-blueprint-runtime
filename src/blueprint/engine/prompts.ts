@@ -16,7 +16,7 @@ import type {
 } from '../types';
 
 const BRING_THE_FIRM_AI_CONTEXT_RULE =
-	'Use Builder/user context to interpret the builder user, intent, audience, and notification use. Do not treat it as literal email copy unless the user asks.';
+	'Use Builder/user context to interpret the builder user, intent, audience, and format use. Do not treat it as literal email copy unless the user asks.';
 
 function stringifyPromptData(value: unknown) {
 	return JSON.stringify(value, null, 2);
@@ -30,7 +30,7 @@ export function formatBringTheFirmAiContextPromptBlock(aiContext?: BringTheFirmA
 	const contextEntries = [
 		['Person context', aiContext?.personContext],
 		['Conversation reason', aiContext?.conversationReason],
-		['Notification use', aiContext?.notificationUse]
+		['Format use', aiContext?.formatUse]
 	].filter((entry): entry is [string, string] => Boolean(entry[1]));
 
 	if (contextEntries.length === 0) {

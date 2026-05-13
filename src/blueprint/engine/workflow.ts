@@ -178,7 +178,7 @@ export async function streamBringTheFirmBuilderTurn(params: {
 				{
 					type: 'function',
 					name: UPDATE_EMAIL_DRAFT_TOOL_NAME,
-					description: 'Patch the visible email notification draft.',
+					description: 'Patch the visible opportunity format email draft.',
 					parameters: emailDraftPatchJsonSchema
 				}
 			],

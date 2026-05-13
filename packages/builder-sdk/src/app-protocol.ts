@@ -118,7 +118,7 @@ function buildGuidedInitialMessage({
 	});
 
 	return [
-		`I want to build this notification: ${title}`,
+		`I want to build this opportunity format: ${title}`,
 		'',
 		'Description:',
 		description,
