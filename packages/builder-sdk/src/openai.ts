@@ -1,8 +1,8 @@
 export const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 export const STRUCTURED_MAX_OUTPUT_TOKENS = 8_000;
 
-const DEFAULT_OPENAI_MODEL = "gpt-5.4-nano";
-const DEFAULT_OPENAI_FAST_MODEL = "gpt-5.4-nano";
+const DEFAULT_OPENAI_MODEL = "gpt-5.5";
+const DEFAULT_OPENAI_FAST_MODEL = "gpt-5.5";
 const DEFAULT_OPENAI_REASONING_EFFORT = "low";
 const DEFAULT_OPENAI_FAST_REASONING_EFFORT = "low";
 
