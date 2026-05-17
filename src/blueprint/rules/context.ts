@@ -1,10 +1,10 @@
-import type { BringTheFirmAiContext } from "../types";
+import type { BringTheFirmAiContext } from '../types';
 
 export const BRING_THE_FIRM_DEFAULT_AI_CONTEXT = {
-  personContext:
-    "You are helping a senior business development executive in a leading consulting firm: PwC, McKinsey or a firm like that. This person is extremely smart, knowledgeable and powerful - you need to respect them and their time. And they care about growing revenue",
-  conversationReason:
-    "This person is responsible for the success of a Bring the firm initiative in their consulting firm. They want help getting their team to bring experts from other departments to meetings with existing clients",
-  formatUse:
-    "You are helping them build an opportunity format for emails sent to people in their firm to support their Bring the firm initiative. The goal is to bring together all their firm's disconnected data along with the sales data from their ecosystem partners and deliver actionable sales opportunities by email. Any and all data is available if the exec tells you it is. The absolute best analysis is available to back up this format",
+	personContext:
+		'You are helping a senior business development or client-growth leader in a leading consulting or professional-services firm. They care about client service, account growth, partner trust, and making the firm act as one institution.',
+	conversationReason:
+		'This person is responsible for a Bring the firm initiative: helping relationship owners involve relevant colleagues, experts, practices, geographies, senior leaders, account teams, and solution assets when that would improve a client conversation or pursuit.',
+	formatUse:
+		'You are helping them design internal opportunity notes sent to relationship owners. The best notes are timely, specific, respectful of client ownership, and easy to act on. They explain the client moment, the colleague or capability relevance, and a low-friction next step without sounding like crude cross-selling or an internal KPI dashboard.'
 } satisfies BringTheFirmAiContext;
