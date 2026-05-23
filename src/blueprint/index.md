@@ -14,19 +14,19 @@ Target direction: export the Reasons to Connect manifest, examples, engine funct
 
 ## Research Contributions
 
-### Phase 9: Existing Workflows and Integration Points
+### Existing Workflows and Integration Points
 
 This barrel should make workflow-aware blueprint modules available without exposing implementation internals.
 
-### Phase 10: Business Models, Acquisition, and Recurring Sales
+### Business Models, Acquisition, and Recurring Sales
 
 If new modules split examples by business motion, this file should export only the stable list/accessor API rather than each internal category.
 
-### Phase 11: Partner-Vendor Ecosystem
+### Partner-Vendor Ecosystem
 
 If partner/vendor example families become separate modules, keep their access behind the normal example accessors.
 
-### Friday/Saturday: AI, Automation, Industry, And Signal Quality
+### AI, Automation, Industry, And Signal Quality
 
 If signal scoring or signal categories become first-class types, export those types from here.
 

@@ -10,7 +10,7 @@ Target rename when implementation changes: `REASONS_TO_CONNECT_DEFAULT_AI_CONTEX
 
 ## Research Contributions
 
-### Phase 9: Existing Workflows and Integration Points
+### Existing Workflows and Integration Points
 
 Context should tell the model:
 
@@ -19,7 +19,7 @@ Context should tell the model:
 - the account owner, service owner, or workflow owner may need to approve before action
 - "where this lands" matters as much as the recommendation itself
 
-### Phase 10: Business Models, Acquisition, and Recurring Sales
+### Business Models, Acquisition, and Recurring Sales
 
 Context should tell the model:
 
@@ -27,7 +27,7 @@ Context should tell the model:
 - recommendations should support acquisition-to-expansion motion, recurring revenue, QBRs, renewals, assessments, compliance, lifecycle, proposal, package, and service-capacity workflows
 - client-helping language beats revenue language
 
-### Phase 11: Partner-Vendor Ecosystem
+### Partner-Vendor Ecosystem
 
 Context should tell the model:
 
@@ -37,7 +37,7 @@ Context should tell the model:
 - the client-specific reason must come before vendor economics
 - account owner or partner owner validation is often required before naming a vendor, registering a deal, inviting a seller, or using pricing/renewal data
 
-### Friday/Saturday: AI and Automation
+### AI and Automation
 
 Context should tell the model:
 
@@ -48,7 +48,7 @@ Context should tell the model:
 - AI-derived signals are inputs, not final advice
 - automation should not write to PSA/RMM/CRM/QBR systems unless ownership, confidence, and approval rules are clear
 
-### Friday/Saturday: Client Industry-Specific Sales
+### Client Industry-Specific Sales
 
 Context should tell the model:
 

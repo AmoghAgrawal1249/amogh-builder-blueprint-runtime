@@ -16,7 +16,7 @@ Target rename direction: `reasonsToConnectExamples` and matching accessors.
 
 ## Research Contributions
 
-### Phase 9: Existing Workflows and Integration Points
+### Existing Workflows and Integration Points
 
 Example families should eventually represent workflow/signal patterns, not only program maturity.
 
@@ -31,7 +31,7 @@ Possible families:
 - partner/vendor
 - internal delivery signal
 
-### Phase 10: Business Models, Acquisition, and Recurring Sales
+### Business Models, Acquisition, and Recurring Sales
 
 If too many examples accumulate, keep grouped families by motion:
 
@@ -41,11 +41,11 @@ If too many examples accumulate, keep grouped families by motion:
 - compliance/risk
 - partner/vendor activation
 
-### Phase 11: Partner-Vendor Ecosystem
+### Partner-Vendor Ecosystem
 
 Partner/vendor examples may need their own family because validation rules are different.
 
-### Friday/Saturday: AI, Automation, Industry, And Signal Quality
+### AI, Automation, Industry, And Signal Quality
 
 Signal-quality examples may need to include weak-signal cases. If weak examples are not used as base drafts, they can still be included as routing or rule tests.
 

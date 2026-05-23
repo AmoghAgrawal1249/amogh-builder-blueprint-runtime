@@ -10,13 +10,13 @@ Target rename when implementation changes: `reasonsToConnectGuide`.
 
 ## Research Contributions
 
-### Phase 9: Existing Workflows and Integration Points
+### Existing Workflows and Integration Points
 
 Guide questions should capture where the recommendation lands: account review, QBR, proposal, renewal, delivery handoff, partner program, service issue, security review, or internal planning.
 
 This matters because the same signal should be worded differently depending on whether it lands with an account owner, vCIO, partner lead, service owner, pursuit lead, or security lead.
 
-### Phase 10: Business Models, Acquisition, and Recurring Sales
+### Business Models, Acquisition, and Recurring Sales
 
 Guide should ask what kind of business motion is being supported:
 
@@ -28,13 +28,13 @@ Guide should ask what kind of business motion is being supported:
 - partner/vendor activation
 - service capacity or delivery escalation
 
-### Phase 11: Partner-Vendor Ecosystem
+### Partner-Vendor Ecosystem
 
 Guide should ask whether partner/vendor data is involved and whether it needs validation before being named.
 
 Sensitive vendor/commercial inputs include margin, rebate, MDF, pricing, deal registration, partner-of-record, renewal data, and distributor economics.
 
-### Friday/Saturday: AI, Automation, Industry, And Signal Quality
+### AI, Automation, Industry, And Signal Quality
 
 Guide should ask signal type and source:
 

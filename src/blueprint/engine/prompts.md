@@ -17,7 +17,7 @@ Target rename direction: `ReasonsToConnect*`.
 
 ## Research Contributions
 
-### Phase 9: Existing Workflows and Integration Points
+### Existing Workflows and Integration Points
 
 Prompts should carry workflow context:
 
@@ -26,7 +26,7 @@ Prompts should carry workflow context:
 - what system or process produced the signal
 - what action is safe inside the existing workflow
 
-### Phase 10: Business Models, Acquisition, and Recurring Sales
+### Business Models, Acquisition, and Recurring Sales
 
 Prompts should make the model distinguish:
 
@@ -37,7 +37,7 @@ Prompts should make the model distinguish:
 
 The note can support revenue, but should not read like revenue extraction.
 
-### Phase 11: Partner-Vendor Ecosystem
+### Partner-Vendor Ecosystem
 
 Prompts should instruct the model:
 
@@ -46,7 +46,7 @@ Prompts should instruct the model:
 - vendor naming, pricing, deal registration, and seller involvement may require validation
 - partner economics do not belong in recipient-facing notes unless explicitly requested
 
-### Friday/Saturday: AI, Automation, Industry, And Signal Quality
+### AI, Automation, Industry, And Signal Quality
 
 Prompts should add:
 

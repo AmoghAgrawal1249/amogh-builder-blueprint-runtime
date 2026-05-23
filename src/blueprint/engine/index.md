@@ -15,19 +15,19 @@ Target rename direction: `*ReasonsToConnect*`.
 
 ## Research Contributions
 
-### Phase 9: Existing Workflows and Integration Points
+### Existing Workflows and Integration Points
 
 Engine exports should preserve a simple runtime contract even if the prompt internals become workflow-aware.
 
-### Phase 10: Business Models, Acquisition, and Recurring Sales
+### Business Models, Acquisition, and Recurring Sales
 
 If the engine later gains separate routing by business motion, keep one stable export for route/adapt/refine.
 
-### Phase 11: Partner-Vendor Ecosystem
+### Partner-Vendor Ecosystem
 
 Partner/vendor validation should be handled in prompts and workflow state, not by exporting many vendor-specific functions.
 
-### Friday/Saturday: AI, Automation, Industry, And Signal Quality
+### AI, Automation, Industry, And Signal Quality
 
 Signal scoring should be internal unless the UI or runtime needs to display it. If displayed, export a stable type or helper from `types.ts`, not from this barrel.
 

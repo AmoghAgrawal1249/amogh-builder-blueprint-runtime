@@ -10,7 +10,7 @@ Target rename direction: `validationFirstExamples`.
 
 ## Research Contributions
 
-### Phase 9: Existing Workflows and Integration Points
+### Existing Workflows and Integration Points
 
 Validation-first examples should cover more than calendar availability:
 
@@ -20,11 +20,11 @@ Validation-first examples should cover more than calendar availability:
 - workflow owner approval
 - fit check before client mention
 
-### Phase 10: Business Models, Acquisition, and Recurring Sales
+### Business Models, Acquisition, and Recurring Sales
 
 Validation is especially important for renewals, proposals, assessments, and expansion motions where a premature recommendation can feel salesy or politically unsafe.
 
-### Phase 11: Partner-Vendor Ecosystem
+### Partner-Vendor Ecosystem
 
 This example family should cover vendor-sensitive recommendations:
 
@@ -36,7 +36,7 @@ This example family should cover vendor-sensitive recommendations:
 
 The default next step should often be "check internally first."
 
-### Friday/Saturday: AI, Automation, Industry, And Signal Quality
+### AI, Automation, Industry, And Signal Quality
 
 Validation-first examples should cover:
 

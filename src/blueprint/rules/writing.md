@@ -13,13 +13,13 @@ Target direction: keep shared exports or rename to Reasons to Connect language i
 
 ## Research Contributions
 
-### Phase 9: Existing Workflows and Integration Points
+### Existing Workflows and Integration Points
 
 Writing should sound like a competent internal colleague who understands where the recommendation lands.
 
 The note should not sound like a central team issuing instructions or a marketer pushing a campaign.
 
-### Phase 10: Business Models, Acquisition, and Recurring Sales
+### Business Models, Acquisition, and Recurring Sales
 
 Use client-helping language:
 
@@ -37,13 +37,13 @@ Avoid revenue-first language:
 - "high-propensity"
 - "underpenetrated"
 
-### Phase 11: Partner-Vendor Ecosystem
+### Partner-Vendor Ecosystem
 
 Writing should avoid vendor-pitch language. It should not sound like a reseller email.
 
 Name vendor context only when it helps the account owner understand the client reason, and keep sensitive commercial mechanics out of the note by default.
 
-### Friday/Saturday: AI, Automation, Industry, And Signal Quality
+### AI, Automation, Industry, And Signal Quality
 
 Writing should avoid hype:
 

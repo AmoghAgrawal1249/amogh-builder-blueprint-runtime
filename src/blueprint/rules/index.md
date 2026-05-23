@@ -13,19 +13,19 @@ Current exports:
 
 ## Research Contributions
 
-### Phase 9: Existing Workflows and Integration Points
+### Existing Workflows and Integration Points
 
 Rules should remain modular so workflow context, drafting behavior, routing behavior, and writing tone can evolve separately.
 
-### Phase 10: Business Models, Acquisition, and Recurring Sales
+### Business Models, Acquisition, and Recurring Sales
 
 If business-model rules become large, consider a new `business-model.ts` rule module instead of overloading context.
 
-### Phase 11: Partner-Vendor Ecosystem
+### Partner-Vendor Ecosystem
 
 If partner/vendor sensitivity rules become large, consider a new `partner.ts` rule module and re-export it here.
 
-### Friday/Saturday: AI, Automation, Industry, And Signal Quality
+### AI, Automation, Industry, And Signal Quality
 
 If AI/automation or signal scoring rules become large, consider new modules:
 

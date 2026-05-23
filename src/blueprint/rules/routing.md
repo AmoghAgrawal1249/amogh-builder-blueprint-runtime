@@ -10,7 +10,7 @@ Target rename direction: `REASONS_TO_CONNECT_ROUTING_RULES`.
 
 ## Research Contributions
 
-### Phase 9: Existing Workflows and Integration Points
+### Existing Workflows and Integration Points
 
 Routing should consider where the note lands:
 
@@ -22,7 +22,7 @@ Routing should consider where the note lands:
 - partner/vendor workflow
 - internal prep
 
-### Phase 10: Business Models, Acquisition, and Recurring Sales
+### Business Models, Acquisition, and Recurring Sales
 
 Routing should consider business motion:
 
@@ -34,11 +34,11 @@ Routing should consider business motion:
 - proposal support
 - recurring service packaging
 
-### Phase 11: Partner-Vendor Ecosystem
+### Partner-Vendor Ecosystem
 
 Routing should identify partner/vendor-heavy recommendations and prefer validation-first examples when commercial data or partner politics are sensitive.
 
-### Friday/Saturday: AI, Automation, Industry, And Signal Quality
+### AI, Automation, Industry, And Signal Quality
 
 Routing should consider signal family:
 

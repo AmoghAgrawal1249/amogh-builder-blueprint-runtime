@@ -15,19 +15,19 @@ Target rename direction: `ReasonsToConnect*`.
 
 ## Research Contributions
 
-### Phase 9: Existing Workflows and Integration Points
+### Existing Workflows and Integration Points
 
 Workflow state should preserve selected example family and initial question. Future state may also preserve signal category, landing workflow, and validation mode.
 
-### Phase 10: Business Models, Acquisition, and Recurring Sales
+### Business Models, Acquisition, and Recurring Sales
 
 If business motion becomes a routing dimension, workflow should pass it into routing/adaptation without hard-coding MSP-specific behavior in orchestration.
 
-### Phase 11: Partner-Vendor Ecosystem
+### Partner-Vendor Ecosystem
 
 Workflow should support cases where the safest output is a validation-first note, not a direct connection suggestion.
 
-### Friday/Saturday: AI, Automation, Industry, And Signal Quality
+### AI, Automation, Industry, And Signal Quality
 
 Workflow may need to represent weak-signal behavior:
 

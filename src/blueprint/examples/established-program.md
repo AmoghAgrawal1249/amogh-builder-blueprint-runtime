@@ -10,7 +10,7 @@ Target rename direction: `establishedReasonsToConnectExamples`.
 
 ## Research Contributions
 
-### Phase 9: Existing Workflows and Integration Points
+### Existing Workflows and Integration Points
 
 Mature examples should be workflow-specific:
 
@@ -22,7 +22,7 @@ Mature examples should be workflow-specific:
 - partner program
 - service escalation
 
-### Phase 10: Business Models, Acquisition, and Recurring Sales
+### Business Models, Acquisition, and Recurring Sales
 
 Examples should reflect real business motions:
 
@@ -33,7 +33,7 @@ Examples should reflect real business motions:
 - cloud growth to cloud security/FinOps
 - proposal to specialist proof point
 
-### Phase 11: Partner-Vendor Ecosystem
+### Partner-Vendor Ecosystem
 
 Examples should show how to use vendor/partner data safely:
 
@@ -42,7 +42,7 @@ Examples should show how to use vendor/partner data safely:
 - renewal/pricing signal kept internal
 - partner owner validation before seller involvement
 
-### Friday/Saturday: AI, Automation, Industry, And Signal Quality
+### AI, Automation, Industry, And Signal Quality
 
 Examples should include:
 

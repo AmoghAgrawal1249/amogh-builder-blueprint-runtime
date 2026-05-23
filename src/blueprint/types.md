@@ -17,7 +17,7 @@ Target rename direction: replace `BringTheFirm*` names with `ReasonsToConnect*` 
 
 ## Research Contributions
 
-### Phase 9: Existing Workflows and Integration Points
+### Existing Workflows and Integration Points
 
 Types may need to represent where the recommendation lands and which workflow owns action.
 
@@ -29,7 +29,7 @@ Potential fields:
 - `validationOwner`
 - `sourceSystem`
 
-### Phase 10: Business Models, Acquisition, and Recurring Sales
+### Business Models, Acquisition, and Recurring Sales
 
 Types may need to represent business motion:
 
@@ -42,7 +42,7 @@ Types may need to represent business motion:
 - proposal support
 - service capacity
 
-### Phase 11: Partner-Vendor Ecosystem
+### Partner-Vendor Ecosystem
 
 Types may need to represent vendor sensitivity:
 
@@ -52,7 +52,7 @@ Types may need to represent vendor sensitivity:
 - `vendorMayBeNamed`
 - `pricingDataAllowed`
 
-### Friday/Saturday: AI, Automation, Industry, And Signal Quality
+### AI, Automation, Industry, And Signal Quality
 
 Types may need to represent signal quality:
 

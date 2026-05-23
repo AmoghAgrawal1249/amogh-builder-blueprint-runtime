@@ -16,7 +16,7 @@ Target rename direction: `REASONS_TO_CONNECT_*`.
 
 ## Research Contributions
 
-### Phase 9: Existing Workflows and Integration Points
+### Existing Workflows and Integration Points
 
 Drafting rules should preserve:
 
@@ -26,13 +26,13 @@ Drafting rules should preserve:
 - existing system context
 - validation before action
 
-### Phase 10: Business Models, Acquisition, and Recurring Sales
+### Business Models, Acquisition, and Recurring Sales
 
 Drafts should make commercial usefulness implicit through client value. Avoid crude revenue language.
 
 Recommendations may support renewal, expansion, proposal, assessment, compliance, lifecycle, or service work, but the note should read as client-helping and internally useful.
 
-### Phase 11: Partner-Vendor Ecosystem
+### Partner-Vendor Ecosystem
 
 Drafts should:
 
@@ -42,7 +42,7 @@ Drafts should:
 - avoid copying partner sellers by default
 - treat pricing, margins, MDF, rebate, distributor, deal-registration, and partner-of-record data as sensitive
 
-### Friday/Saturday: AI, Automation, Industry, And Signal Quality
+### AI, Automation, Industry, And Signal Quality
 
 Drafts should:
 

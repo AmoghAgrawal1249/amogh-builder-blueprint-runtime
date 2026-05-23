@@ -10,19 +10,19 @@ Target rename direction: `newReasonsToConnectProgramExamples`.
 
 ## Research Contributions
 
-### Phase 9: Existing Workflows and Integration Points
+### Existing Workflows and Integration Points
 
 New-program examples should lower friction and protect relationship owners. The note should feel optional and helpful, not like a mandate.
 
-### Phase 10: Business Models, Acquisition, and Recurring Sales
+### Business Models, Acquisition, and Recurring Sales
 
 Examples should explain practical client-helping value, not revenue language. This is especially important when a firm is trying to introduce a new recommendation motion.
 
-### Phase 11: Partner-Vendor Ecosystem
+### Partner-Vendor Ecosystem
 
 New-program examples should avoid heavy vendor language unless the client signal is clear. Partner/vendor recommendations can feel political or salesy when the program is not trusted.
 
-### Friday/Saturday: AI, Automation, Industry, And Signal Quality
+### AI, Automation, Industry, And Signal Quality
 
 New-program examples should show how to make a broad trend safe:
 

@@ -16,11 +16,11 @@ Target rename direction:
 
 ## Research Contributions
 
-### Phase 9: Existing Workflows and Integration Points
+### Existing Workflows and Integration Points
 
 Examples may need fields for workflow landing spot and recipient role.
 
-### Phase 10: Business Models, Acquisition, and Recurring Sales
+### Business Models, Acquisition, and Recurring Sales
 
 Examples may need match signals for business motion:
 
@@ -31,11 +31,11 @@ Examples may need match signals for business motion:
 - compliance
 - service-capacity
 
-### Phase 11: Partner-Vendor Ecosystem
+### Partner-Vendor Ecosystem
 
 Examples may need match signals for partner/vendor sensitivity and validation.
 
-### Friday/Saturday: AI, Automation, Industry, And Signal Quality
+### AI, Automation, Industry, And Signal Quality
 
 Examples may need signal metadata:
 
