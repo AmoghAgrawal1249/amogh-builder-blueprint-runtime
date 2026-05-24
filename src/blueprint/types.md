@@ -29,6 +29,35 @@ Potential fields:
 - `validationOwner`
 - `sourceSystem`
 
+### Consulting Operating Model
+
+Types may need fields that capture where the signal sits in the consulting work cycle:
+
+- `consultingStage`
+- `clientMoment`
+- `accountOwnerRole`
+- `practiceOwnerRole`
+- `engagementOwnerRole`
+
+### Consultant Problem-Solving and Meeting Prep
+
+Types may need lightweight fields for the reasoning behind a recommendation:
+
+- `workingHypothesis`
+- `evidenceSummary`
+- `meetingObjective`
+- `nextDecision`
+- `openQuestion`
+
+### Consultant Delivery Formats and Diagnosis
+
+Types may need to represent the deliverable and diagnosis layer:
+
+- `deliverableType`
+- `diagnosisLayer`
+- `deliverableGap`
+- `reviewContribution`
+
 ### Business Models, Acquisition, and Recurring Sales
 
 Types may need to represent business motion:
@@ -84,6 +113,20 @@ Industry fields:
 - `buyer`
 - `operationalRisk`
 
+### Consulting Collaboration Incentives and Blockers
+
+Types may need to represent whether the recommendation is politically safe and low-friction:
+
+- `relationshipOwnerSensitivity`
+- `collaborationRisk`
+- `collaborationMode`
+- `expectedContribution`
+- `askSize`
+- `relationshipOwnerBenefit`
+- `bypassRisk`
+
+These should stay lightweight. The goal is not to model firm compensation or credit allocation; it is to help prompts avoid unsafe collaboration asks.
+
 ## Draft Type Direction
 
 ```ts
@@ -95,6 +138,25 @@ type ReasonsToConnectSignalCategory =
   | 'partner-vendor'
   | 'relationship-staffing';
 
+type ReasonsToConnectConsultingStage =
+  | 'discovery'
+  | 'proposal'
+  | 'staffing'
+  | 'delivery'
+  | 'meeting-prep'
+  | 'executive-readout'
+  | 'renewal-follow-on';
+
+type ReasonsToConnectDeliverableType =
+  | 'assessment'
+  | 'options-analysis'
+  | 'business-case'
+  | 'roadmap'
+  | 'operating-model'
+  | 'risk-heatmap'
+  | 'workshop-pack'
+  | 'proposal-sow';
+
 type ReasonsToConnectSignalScore = {
   specificity: 0 | 1 | 2;
   timing: 0 | 1 | 2;
@@ -102,6 +164,14 @@ type ReasonsToConnectSignalScore = {
   consultantFit: 0 | 1 | 2;
   actionability: 0 | 1 | 2;
 };
+
+type ReasonsToConnectCollaborationMode =
+  | 'internal-check'
+  | 'pressure-test'
+  | 'expert-note'
+  | 'deliverable-review'
+  | 'meeting-prep'
+  | 'client-introduction-with-owner-approval';
 ```
 
 ## Tone

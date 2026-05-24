@@ -22,6 +22,36 @@ Mature examples should be workflow-specific:
 - partner program
 - service escalation
 
+### Consulting Operating Model
+
+Mature examples should show how reasons to connect fit consulting stages:
+
+- discovery: validate diagnosis
+- proposal: review scope and proof
+- delivery: bring specialist evidence or risk caveat
+- meeting prep: sharpen stakeholder message
+- executive readout: simplify the recommendation
+- follow-on work: identify the next useful advisory angle
+
+### Consultant Problem-Solving and Meeting Prep
+
+Examples should include a working hypothesis and the reason another consultant can improve it.
+
+The best examples feel like "this person can help us think better before the client moment," not "this person can sell something else."
+
+### Consultant Delivery Formats and Diagnosis
+
+Examples should attach the connection to a deliverable or diagnosis layer when possible:
+
+- assessment
+- options analysis
+- business case
+- roadmap
+- operating model
+- risk heatmap
+- workshop
+- proposal/SOW
+
 ### Business Models, Acquisition, and Recurring Sales
 
 Examples should reflect real business motions:
@@ -53,6 +83,17 @@ Examples should include:
 - PCI/payment security
 - acquisition/M&A cyber
 - repeated internal delivery signal
+
+### Consulting Collaboration Incentives and Blockers
+
+Mature examples can make clearer recommendations, but they should still avoid sounding like forced cross-selling.
+
+Each example should show:
+
+- why the other consultant's expertise changes the quality of the work
+- how the relationship owner stays in control
+- whether the expected contribution is validation, pressure-testing, deliverable review, proposal support, or meeting preparation
+- why the ask is worth the collaborator's time
 
 ## Candidate Example Set
 
@@ -88,12 +129,28 @@ Connect: email security/IAM or partner owner.
 
 Reason: vendor signal becomes credible only because client evidence supports it.
 
+### Proposal Scope Pressure-Test
+
+Signal: draft proposal includes security or compliance work outside the core team's depth.
+
+Connect: relevant security/GRC practice lead.
+
+Reason: a short internal review can prevent overpromising, sharpen scope, and protect the relationship owner before pricing or client discussion.
+
+### Executive Readout Prep
+
+Signal: upcoming executive meeting includes business-risk themes that are adjacent to another practice.
+
+Connect: senior but relevant SME, or a delegated practice expert if senior availability is limited.
+
+Reason: the expert can help sharpen the message without taking over the meeting.
+
 ## Draft Example Shape
 
 ```text
 Ahead of [client moment], [consultant/practice] may be worth a quick internal check. The trigger is [specific signal], and the client-specific reason is [risk/timing/context].
 
-Suggested ask: have [consultant/practice] give you a short view before [meeting/review/proposal]. No client intro unless you think the angle is useful.
+Suggested ask: have [consultant/practice] give you a short view before [meeting/review/proposal] so you can decide whether the angle is useful. No client intro unless you want one.
 ```
 
 ## Tone

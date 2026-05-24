@@ -26,6 +26,38 @@ Drafting rules should preserve:
 - existing system context
 - validation before action
 
+### Consulting Operating Model
+
+Drafts should place the recommendation inside a real consulting moment:
+
+- discovery or diagnosis
+- proposal or pursuit
+- staffing or expert search
+- delivery issue
+- meeting prep
+- executive readout
+- renewal or follow-on work
+
+### Consultant Problem-Solving and Meeting Prep
+
+Drafts should explain the thinking, not only the connection:
+
+- working hypothesis
+- supporting evidence
+- uncertainty or caveat
+- decision or question the next client meeting needs to address
+
+### Consultant Delivery Formats and Diagnosis
+
+Drafts should name the deliverable or diagnosis gap when relevant:
+
+- current-state assessment needs specialist validation
+- options analysis needs tradeoff review
+- business case needs value/risk assumptions
+- roadmap needs sequencing input
+- risk heatmap needs technical or regulatory caveat
+- proposal/SOW needs scope review before pricing
+
 ### Business Models, Acquisition, and Recurring Sales
 
 Drafts should make commercial usefulness implicit through client value. Avoid crude revenue language.
@@ -52,6 +84,17 @@ Drafts should:
 - avoid compliance guarantees
 - avoid autonomous-action claims
 
+### Consulting Collaboration Incentives and Blockers
+
+Drafts should reduce the perceived cost of collaboration:
+
+- make the relationship owner the decision-maker
+- explain how the other consultant helps the client situation
+- state the collaborator's exact contribution
+- keep the ask small, such as a 10-15 minute internal check, short review, or meeting-prep input
+- avoid implying that the client will be contacted
+- avoid making the relationship owner feel bypassed, judged, or forced to sell another service
+
 ## Rule Guidance
 
 ### Hidden Draft Rules
@@ -60,8 +103,10 @@ Every draft should include:
 
 - client signal
 - why it matters for this client now
+- consulting moment, deliverable, or working hypothesis when relevant
 - relevant consultant/practice/team/asset
 - why that expertise fits
+- how the connection helps the relationship owner
 - low-friction internal ask
 - caveat or validation step
 
@@ -71,6 +116,8 @@ When refining, preserve:
 
 - evidence strength
 - relationship owner control
+- collaborator contribution
+- small ask size
 - no invented facts
 - no forced external introduction
 - no generic trend claims
@@ -85,6 +132,8 @@ Weak examples:
 - "Client is in healthcare"
 - "Vendor has a promotion"
 - "There are some alerts"
+- "Another practice wants more visibility"
+- "A senior expert may be useful" with no client-specific reason
 
 Strong examples:
 
@@ -99,7 +148,11 @@ Strong examples:
 
 `If the signal comes from AI, automation, industry context, external news, partner/vendor data, or internal delivery work, explain why that signal changes the client situation now.`
 
+`If the reason is tied to consulting work, mention the client moment or deliverable the connection improves: meeting prep, diagnosis, proposal, delivery, executive readout, roadmap, or follow-on work.`
+
 `Keep the relationship owner in control. Do not imply client outreach, vendor outreach, deal registration, pricing use, or system updates have happened unless the user says so.`
+
+`Do not frame the recommendation as cross-selling. Frame it as a small internal collaboration ask that could help the relationship owner validate, sharpen, or safely decide whether to use the idea.`
 
 ## Tone
 

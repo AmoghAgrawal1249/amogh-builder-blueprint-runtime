@@ -20,6 +20,25 @@ Target rename direction:
 
 Examples may need fields for workflow landing spot and recipient role.
 
+### Consulting Operating Model
+
+Examples may need match signals for consulting stage:
+
+- discovery
+- proposal
+- delivery
+- meeting-prep
+- executive-readout
+- renewal-follow-on
+
+### Consultant Problem-Solving and Meeting Prep
+
+Examples may need optional metadata for hypothesis, evidence, meeting objective, or next decision if routing becomes more precise.
+
+### Consultant Delivery Formats and Diagnosis
+
+Examples may need match signals for deliverable type or diagnosis layer.
+
 ### Business Models, Acquisition, and Recurring Sales
 
 Examples may need match signals for business motion:
@@ -45,6 +64,16 @@ Examples may need signal metadata:
 - source system
 - validation requirement
 
+### Consulting Collaboration Incentives and Blockers
+
+Examples may need collaboration metadata only if routing quality requires it:
+
+- collaboration mode
+- relationship-owner sensitivity
+- expected contribution
+- ask size
+- client intro allowed
+
 ## Type Guidance
 
 Current type shape is simple and useful:
@@ -64,9 +93,14 @@ Possible additive fields:
 
 ```ts
 signalCategory?: ReasonsToConnectSignalCategory;
+consultingStage?: ReasonsToConnectConsultingStage;
+deliverableType?: ReasonsToConnectDeliverableType;
 workflow?: string;
 validationMode?: string;
 minimumSignalStrength?: 'weak' | 'good' | 'strong';
+collaborationMode?: ReasonsToConnectCollaborationMode;
+relationshipOwnerSensitivity?: 'low' | 'medium' | 'high';
+clientIntroAllowed?: boolean;
 ```
 
 ## Tone
