@@ -1,11 +1,7 @@
+node_modules
+.svelte-kit
+build
 .DS_Store
-
-runtime/node_modules
-runtime/.vercel
-runtime/packages/builder-sdk/dist
-runtime/.env
-runtime/.env.*
-!runtime/.env.example
-
-harness/node_modules
-harness/dist
+.env
+.env.*
+!.env.example
