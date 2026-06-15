@@ -287,6 +287,7 @@ function followUpForVariant(
 ) {
   switch (variant) {
     case "direct-docs":
+      return scenario.curatedFollowUp;
     case "document-focused":
       return scenario.documentCaveat;
     case "broad-bundle":
@@ -369,54 +370,58 @@ const scenarioDefinitions: readonly ScenarioDefinition[] = [
     filename: "Same client context pack.xlsx",
     cc: ["Prior pitch owner"],
     ownerRoleDescription: [
-      "led ",
-      v("primary_context_name"),
-      " from ",
+      "led a proposal to ",
+      v("client_name"),
+      " from our ",
       v("source_team_or_office"),
-      " in ",
+      " ",
       v("context_timeframe"),
     ],
     opening: (owner, mode) =>
       mode === "none"
         ? [
             "You're working on the ",
-            v("opportunity_name"),
-            " for ",
             v("client_name"),
-            ". I found a prior proposal to the same client from ",
+            " pitch. I found a prior proposal to ",
+            v("client_name"),
+            " from our ",
+            v("source_team_or_office"),
+            " ",
             v("context_timeframe"),
             ".",
           ]
         : [
             "You're working on the ",
-            v("opportunity_name"),
-            " for ",
             v("client_name"),
-            ". ",
+            " pitch. ",
             ...owner,
             ".",
           ],
     curatedMaterial: [
-      "I attached ",
+      "I attached the final proposal ",
+      v("context_owner_name"),
+      " submitted, plus ",
       v("attached_materials"),
-      ", including the final proposal, post-decision notes, and supporting pursuit docs.",
+      " from the pursuit folder.",
     ],
     directMaterial: [
-      "I kept this to the most directly relevant material: ",
-      v("primary_context_name"),
-      " plus ",
+      "I kept this to the final proposal ",
+      v("context_owner_name"),
+      " submitted and the most relevant notes from ",
       v("attached_materials"),
       ".",
     ],
     broadMaterial: [
-      "I attached ",
+      "I attached the final proposal ",
+      v("context_owner_name"),
+      " submitted, plus the post-decision notes, supporting pursuit docs, and nearby account context from ",
       v("attached_materials"),
-      ", including the final proposal, post-decision notes, supporting pursuit docs, and nearby account notes.",
+      ".",
     ],
     peopleMaterial: [
-      "The documents matter, but the valuable part is ",
+      "I attached the core pursuit docs, but the useful part is really ",
       v("context_owner_name"),
-      "'s read on the prior pursuit and what still applies.",
+      "'s judgment on what still applies from the prior pitch.",
     ],
     insight: [
       "The useful context is both the proposal itself and where the client pushed back on ",
@@ -463,7 +468,7 @@ const scenarioDefinitions: readonly ScenarioDefinition[] = [
     ownerRoleDescription: [
       "worked with another ",
       v("client_name"),
-      " team in ",
+      " team ",
       v("context_timeframe"),
       " on a related effort",
     ],
@@ -471,36 +476,36 @@ const scenarioDefinitions: readonly ScenarioDefinition[] = [
       mode === "none"
         ? [
             "You're working on the ",
-            v("opportunity_name"),
-            " for ",
             v("client_name"),
-            ". I found same-client context from a different team, not an exact prior pitch.",
+            " pitch. I found same-client context from a different team, not an exact prior pitch.",
           ]
         : [
             "You're working on the ",
-            v("opportunity_name"),
-            " for ",
             v("client_name"),
-            ". ",
+            " pitch. ",
             ...owner,
             ".",
           ],
     curatedMaterial: [
       "I attached ",
+      v("context_owner_name"),
+      "'s working notes, the account context that team used, and the delivery notes from ",
       v("attached_materials"),
-      ": working notes, account context, and delivery notes from that engagement.",
+      ".",
     ],
     directMaterial: [
-      "I kept this to the most useful same-client artifacts: ",
-      v("primary_context_name"),
-      " and the delivery notes in ",
+      "I kept this to ",
+      v("context_owner_name"),
+      "'s working notes and the delivery notes from ",
       v("attached_materials"),
       ".",
     ],
     broadMaterial: [
       "I attached ",
+      v("context_owner_name"),
+      "'s working notes, the account context that team used, the delivery notes from ",
       v("attached_materials"),
-      ", including the working notes, account context, delivery notes, and recent strategy context.",
+      ", and recent strategy context.",
     ],
     peopleMaterial: [
       "Because this is adjacent rather than exact, ",
@@ -551,39 +556,20 @@ const scenarioDefinitions: readonly ScenarioDefinition[] = [
     filename: "Comparable work context.xlsx",
     cc: ["Comparable pursuit owner"],
     ownerRoleDescription: [
-      "led that comparable pursuit for ",
-      v("similar_client_name"),
+      "led that pursuit and can share what the client cared about most",
     ],
-    opening: (owner, mode) =>
-      mode === "none"
-        ? [
-            "You're working on the ",
-            v("opportunity_name"),
-            " for ",
-            v("client_name"),
-            ". I did not find a recent ",
-            v("client_name"),
-            " proposal, but ",
-            v("primary_context_name"),
-            " from ",
-            v("similar_client_name"),
-            " looks like the closest match.",
-          ]
-        : [
-            "You're working on the ",
-            v("opportunity_name"),
-            " for ",
-            v("client_name"),
-            ". I did not find a recent ",
-            v("client_name"),
-            " proposal, but ",
-            v("primary_context_name"),
-            " from ",
-            v("similar_client_name"),
-            " looks like the closest match. ",
-            ...owner,
-            ".",
-          ],
+    opening: () => [
+      "You're working on the ",
+      v("client_name"),
+      " pitch. I did not find a recent ",
+      v("client_name"),
+      " proposal, but ",
+      "the ",
+      v("similar_client_name"),
+      " proposal from ",
+      v("context_timeframe"),
+      " looks like the closest match.",
+    ],
     curatedMaterial: [
       "I attached ",
       v("attached_materials"),
@@ -613,7 +599,7 @@ const scenarioDefinitions: readonly ScenarioDefinition[] = [
     ],
     curatedFollowUp: [
       v("context_owner_name"),
-      " can share what the comparable client cared about most.",
+      ", CCed, led that pursuit and can share what the client cared about most.",
     ],
     optionalFollowUp: [
       "Keep ",
@@ -650,36 +636,17 @@ const scenarioDefinitions: readonly ScenarioDefinition[] = [
     filename: "Partner context pack.xlsx",
     cc: ["Partner context owner"],
     ownerRoleDescription: [
-      "worked on our prior proposal and can compare it with the ",
-      v("partner_name"),
-      " material",
+      "worked on our prior proposal and can help separate what is still current from what has changed in the account",
     ],
-    opening: (owner, mode) =>
-      mode === "none"
-        ? [
-            "You're working on the ",
-            v("opportunity_name"),
-            " for ",
-            v("client_name"),
-            ". I found our prior proposal plus recent ",
-            v("partner_name"),
-            " material from the partner channel.",
-          ]
-        : [
-            "You're working on the ",
-            v("opportunity_name"),
-            " for ",
-            v("client_name"),
-            ". I found our prior proposal plus recent ",
-            v("partner_name"),
-            " material from the partner channel. ",
-            ...owner,
-            ".",
-          ],
+    opening: () => [
+      "You're working on the ",
+      v("client_name"),
+      " pitch.",
+    ],
     curatedMaterial: [
-      "I attached ",
-      v("attached_materials"),
-      ": our prior proposal and the partner-channel material.",
+      "I attached our prior proposal, plus a recent ",
+      v("partner_name"),
+      " proposal that came through the partner channel.",
     ],
     directMaterial: [
       "I kept this to the two strongest sources: our prior proposal and ",
@@ -689,9 +656,11 @@ const scenarioDefinitions: readonly ScenarioDefinition[] = [
       ".",
     ],
     broadMaterial: [
-      "I attached ",
+      "I attached our prior proposal, a recent ",
+      v("partner_name"),
+      " proposal from the partner channel, and the related alliance context in ",
       v("attached_materials"),
-      ", including our prior proposal, the partner-channel material, and related alliance context.",
+      ".",
     ],
     peopleMaterial: [
       "The partner material is useful, but ",
@@ -707,7 +676,7 @@ const scenarioDefinitions: readonly ScenarioDefinition[] = [
     ],
     curatedFollowUp: [
       v("context_owner_name"),
-      " can help separate what is still current from what has changed in the account.",
+      ", CCed, worked on our prior proposal and can help separate what is still current from what has changed in the account.",
     ],
     optionalFollowUp: [
       "Keep ",
@@ -750,24 +719,20 @@ const scenarioDefinitions: readonly ScenarioDefinition[] = [
       mode === "none"
         ? [
             "You're working on the ",
-            v("opportunity_name"),
-            " for ",
             v("client_name"),
-            ". I did not find a recent final proposal, but there is useful expert context.",
+            " pitch. I did not find a recent final proposal, but there is useful expert context.",
           ]
         : [
             "You're working on the ",
-            v("opportunity_name"),
-            " for ",
             v("client_name"),
-            ". I did not find a recent final proposal, but ",
+            " pitch. I did not find a recent final proposal, but ",
             ...owner,
             ".",
           ],
     curatedMaterial: [
       "I attached ",
-      v("attached_materials"),
-      ": workshop notes and the short context deck shared with the client.",
+      v("context_owner_name"),
+      "'s notes from the last workshop and the short context deck shared with the client.",
     ],
     directMaterial: [
       "I kept this to ",
@@ -830,17 +795,15 @@ const scenarioDefinitions: readonly ScenarioDefinition[] = [
     ownerRoleDescription: ["owns the next search step"],
     opening: () => [
       "You're working on the ",
-      v("opportunity_name"),
-      " for ",
       v("client_name"),
-      ". I did not find a prior ",
+      " pitch. I did not find a prior ",
       v("client_name"),
-      " proposal, a strong comparable pitch, partner material, or anyone with recent account context.",
+      " proposal, a strong comparable pitch, or anyone with recent account context.",
     ],
     curatedMaterial: [
       "I attached ",
       v("attached_materials"),
-      ": the standard pitch prep checklist and general proposal template.",
+      ", which may still be useful as starting points.",
     ],
     directMaterial: [
       "I kept this deliberately thin: ",
@@ -858,7 +821,7 @@ const scenarioDefinitions: readonly ScenarioDefinition[] = [
       "I did not find a relevant expert to lead with, so the honest handoff is the checklist plus a targeted next search angle.",
     ],
     insight: [
-      "I did not want to send a weak match and make it look more relevant than it is.",
+      "I'll keep looking for more specific context, but I did not want to send a weak match and make it look more relevant than it is.",
     ],
     curatedFollowUp: [
       "Reply here if there is a particular angle you want me to search for, such as ",
@@ -902,7 +865,6 @@ export const formatStarter = {
   variables: [
     { id: "recipient_name", label: "Recipient name" },
     { id: "client_name", label: "Client name" },
-    { id: "opportunity_name", label: "Opportunity name" },
     { id: "context_owner_name", label: "Context owner name" },
     { id: "context_owner_role", label: "Context owner role" },
     { id: "source_team_or_office", label: "Source team or office" },
