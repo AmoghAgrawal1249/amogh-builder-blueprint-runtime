@@ -2,12 +2,893 @@ import {
   formatParagraph as paragraph,
   formatText as text,
   formatVariable as variable,
+  type FormatInlineNode,
+  type FormatSpreadsheetCell,
 } from "$lib/features/format-starters/domain";
-import type { FormatStarter } from "../types";
+import type { FormatStarter, FormatStartingPoint } from "../types";
 import {
   seededSpreadsheetAttachment,
   spreadsheetCell as cell,
 } from "./helpers";
+
+type InlinePart = string | FormatInlineNode;
+type OwnerReferenceMode = "cced" | "optional" | "none";
+type ScenarioVariant =
+  | "curated"
+  | "direct-docs"
+  | "document-focused"
+  | "broad-bundle"
+  | "people-first"
+  | "optional-followup";
+
+type ScenarioDefinition = {
+  id: string;
+  priorityOptionId: string;
+  label: string;
+  title: string;
+  filename: string;
+  cc: readonly string[];
+  ownerRoleDescription: readonly InlinePart[];
+  opening: (
+    ownerReference: readonly InlinePart[],
+    ownerMode: OwnerReferenceMode,
+  ) => readonly InlinePart[];
+  curatedMaterial: readonly InlinePart[];
+  directMaterial: readonly InlinePart[];
+  broadMaterial: readonly InlinePart[];
+  peopleMaterial: readonly InlinePart[];
+  insight: readonly InlinePart[];
+  curatedFollowUp: readonly InlinePart[];
+  optionalFollowUp: readonly InlinePart[];
+  documentCaveat: readonly InlinePart[];
+  broadCaveat: readonly InlinePart[];
+  peopleFollowUp: readonly InlinePart[];
+  primaryContextType: readonly InlinePart[];
+  supportContextType: readonly InlinePart[];
+  supportWhy: readonly InlinePart[];
+  supportRecommendedUse: readonly InlinePart[];
+  broadContextType: readonly InlinePart[];
+  broadWhy: readonly InlinePart[];
+  broadRecommendedUse: readonly InlinePart[];
+  peopleRecommendedUse: readonly InlinePart[];
+};
+
+const scenarioVariants: readonly ScenarioVariant[] = [
+  "curated",
+  "direct-docs",
+  "document-focused",
+  "broad-bundle",
+  "people-first",
+  "optional-followup",
+];
+
+const contextPackHeaderRow: readonly FormatSpreadsheetCell[] = [
+  cell("Source material"),
+  cell("Context type"),
+  cell("Why it matters"),
+  cell("Owner"),
+  cell("Recommended use"),
+  cell("Caveat or sensitivity"),
+];
+
+function v(variableId: string) {
+  return variable(variableId);
+}
+
+function p(id: string, parts: readonly InlinePart[]) {
+  return paragraph(id, parts.map((part) => (typeof part === "string" ? text(part) : part)));
+}
+
+function c(parts: readonly InlinePart[]) {
+  return cell(...parts);
+}
+
+function contextPackAttachment(
+  filename: string,
+  rows: readonly (readonly FormatSpreadsheetCell[])[],
+) {
+  return seededSpreadsheetAttachment(filename, [contextPackHeaderRow, ...rows]);
+}
+
+function ownerReference(
+  mode: OwnerReferenceMode,
+  roleDescription: readonly InlinePart[],
+): readonly InlinePart[] {
+  if (mode === "cced") {
+    return [v("context_owner_name"), ", CCed, ", ...roleDescription];
+  }
+
+  if (mode === "optional") {
+    return [v("context_owner_name"), " ", ...roleDescription];
+  }
+
+  return [];
+}
+
+function createScenarioRules(scenario: ScenarioDefinition) {
+  const answer = scenario.priorityOptionId;
+
+  return [
+    {
+      id: `${scenario.id}-document-focused-people`,
+      startingPointId: `${scenario.id}-document-focused`,
+      answers: {
+        handoff_priority: answer,
+        people_handling: "document_focused",
+      },
+    },
+    {
+      id: `${scenario.id}-optional-followup`,
+      startingPointId: `${scenario.id}-optional-followup`,
+      answers: {
+        handoff_priority: answer,
+        people_handling: "optional_followups",
+      },
+    },
+    {
+      id: `${scenario.id}-people-first`,
+      startingPointId: `${scenario.id}-people-first`,
+      answers: {
+        handoff_priority: answer,
+        bundle_scope: "people_over_attachments",
+      },
+    },
+    {
+      id: `${scenario.id}-broad-bundle`,
+      startingPointId: `${scenario.id}-broad-bundle`,
+      answers: {
+        handoff_priority: answer,
+        bundle_scope: "broader_context",
+      },
+    },
+    {
+      id: `${scenario.id}-direct-docs`,
+      startingPointId: `${scenario.id}-direct-docs`,
+      answers: {
+        handoff_priority: answer,
+        bundle_scope: "direct_docs_only",
+      },
+    },
+    {
+      id: `${scenario.id}-curated`,
+      startingPointId: `${scenario.id}-curated`,
+      answers: { handoff_priority: answer },
+    },
+  ];
+}
+
+function createScenarioStartingPoints(
+  scenario: ScenarioDefinition,
+): FormatStartingPoint[] {
+  return scenarioVariants.map((variant) => createScenarioStartingPoint(scenario, variant));
+}
+
+function createScenarioStartingPoint(
+  scenario: ScenarioDefinition,
+  variant: ScenarioVariant,
+): FormatStartingPoint {
+  return {
+    id: `${scenario.id}-${variant}`,
+    label: formatVariantLabel(scenario.label, variant),
+    emailContent: {
+      title: formatVariantTitle(scenario.title, variant),
+      to: ["Pitch owner"],
+      cc: formatVariantCc(scenario, variant),
+      attachment: contextPackAttachment(
+        formatVariantFilename(scenario.filename, variant),
+        createAttachmentRows(scenario, variant),
+      ),
+      body: createBody(scenario, variant),
+    },
+  };
+}
+
+function formatVariantLabel(label: string, variant: ScenarioVariant) {
+  if (variant === "curated") {
+    return label;
+  }
+
+  return `${label} - ${formatVariantSuffix(variant)}`;
+}
+
+function formatVariantTitle(title: string, variant: ScenarioVariant) {
+  if (variant === "curated") {
+    return title;
+  }
+
+  return `${title}: ${formatVariantSuffix(variant)}`;
+}
+
+function formatVariantFilename(filename: string, variant: ScenarioVariant) {
+  if (variant === "curated") {
+    return filename;
+  }
+
+  return filename.replace(".xlsx", ` - ${formatVariantSuffix(variant)}.xlsx`);
+}
+
+function formatVariantSuffix(variant: ScenarioVariant) {
+  switch (variant) {
+    case "document-focused":
+      return "document focused";
+    case "direct-docs":
+      return "direct docs";
+    case "broad-bundle":
+      return "broader bundle";
+    case "people-first":
+      return "people first";
+    case "optional-followup":
+      return "optional follow-up";
+    case "curated":
+      return "curated";
+  }
+}
+
+function formatVariantCc(
+  scenario: ScenarioDefinition,
+  variant: ScenarioVariant,
+) {
+  if (variant === "document-focused" || variant === "optional-followup") {
+    return [];
+  }
+
+  return scenario.cc;
+}
+
+function ownerModeForVariant(variant: ScenarioVariant): OwnerReferenceMode {
+  if (variant === "document-focused") {
+    return "none";
+  }
+
+  if (variant === "optional-followup") {
+    return "optional";
+  }
+
+  return "cced";
+}
+
+function createBody(
+  scenario: ScenarioDefinition,
+  variant: ScenarioVariant,
+) {
+  const ownerMode = ownerModeForVariant(variant);
+  const owner = ownerReference(ownerMode, scenario.ownerRoleDescription);
+
+  return [
+    p(`${scenario.id}-${variant}-greeting`, ["Hey ", v("recipient_name"), ","]),
+    p(`${scenario.id}-${variant}-opening`, scenario.opening(owner, ownerMode)),
+    p(`${scenario.id}-${variant}-material`, materialForVariant(scenario, variant)),
+    p(`${scenario.id}-${variant}-insight`, scenario.insight),
+    p(`${scenario.id}-${variant}-follow-up`, followUpForVariant(scenario, variant)),
+  ];
+}
+
+function materialForVariant(
+  scenario: ScenarioDefinition,
+  variant: ScenarioVariant,
+) {
+  switch (variant) {
+    case "direct-docs":
+    case "document-focused":
+      return scenario.directMaterial;
+    case "broad-bundle":
+      return scenario.broadMaterial;
+    case "people-first":
+      return scenario.peopleMaterial;
+    case "optional-followup":
+    case "curated":
+      return scenario.curatedMaterial;
+  }
+}
+
+function followUpForVariant(
+  scenario: ScenarioDefinition,
+  variant: ScenarioVariant,
+) {
+  switch (variant) {
+    case "direct-docs":
+    case "document-focused":
+      return scenario.documentCaveat;
+    case "broad-bundle":
+      return scenario.broadCaveat;
+    case "people-first":
+      return scenario.peopleFollowUp;
+    case "optional-followup":
+      return scenario.optionalFollowUp;
+    case "curated":
+      return scenario.curatedFollowUp;
+  }
+}
+
+function createAttachmentRows(
+  scenario: ScenarioDefinition,
+  variant: ScenarioVariant,
+) {
+  const primaryRow = [
+    c([v("primary_context_name")]),
+    c(scenario.primaryContextType),
+    c([v("relevance_reason")]),
+    c([v("context_owner_name")]),
+    c([v("recommended_action")]),
+    c([v("sensitivity_note")]),
+  ];
+  const supportRow = [
+    c([v("attached_materials")]),
+    c(scenario.supportContextType),
+    c(scenario.supportWhy),
+    c([v("context_owner_role")]),
+    c(scenario.supportRecommendedUse),
+    c([v("context_caveat")]),
+  ];
+  const broadRow = [
+    c(["Broader context"]),
+    c(scenario.broadContextType),
+    c(scenario.broadWhy),
+    c([v("context_owner_role")]),
+    c(scenario.broadRecommendedUse),
+    c([v("context_caveat")]),
+  ];
+  const peopleRow = [
+    c([v("context_owner_name")]),
+    c(["Context owner"]),
+    c([v("context_owner_role")]),
+    c([v("context_owner_name")]),
+    c(scenario.peopleRecommendedUse),
+    c([v("context_caveat")]),
+  ];
+  const optionalRow = [
+    c([v("context_owner_name")]),
+    c(["Optional follow-up"]),
+    c([v("context_owner_role")]),
+    c(["Not CCed"]),
+    c(scenario.peopleRecommendedUse),
+    c([v("context_caveat")]),
+  ];
+
+  switch (variant) {
+    case "direct-docs":
+    case "document-focused":
+      return [primaryRow];
+    case "broad-bundle":
+      return [primaryRow, supportRow, broadRow];
+    case "people-first":
+      return [peopleRow, primaryRow];
+    case "optional-followup":
+      return [primaryRow, supportRow, optionalRow];
+    case "curated":
+      return [primaryRow, supportRow];
+  }
+}
+
+const scenarioDefinitions: readonly ScenarioDefinition[] = [
+  {
+    id: "same-client-prior-pitch",
+    priorityOptionId: "closest_prior_pitch",
+    label: "Same client, prior pitch",
+    title: "Same-client pitch context",
+    filename: "Same client context pack.xlsx",
+    cc: ["Prior pitch owner"],
+    ownerRoleDescription: [
+      "led ",
+      v("primary_context_name"),
+      " from ",
+      v("source_team_or_office"),
+      " in ",
+      v("context_timeframe"),
+    ],
+    opening: (owner, mode) =>
+      mode === "none"
+        ? [
+            "You're working on the ",
+            v("opportunity_name"),
+            " for ",
+            v("client_name"),
+            ". I found a prior proposal to the same client from ",
+            v("context_timeframe"),
+            ".",
+          ]
+        : [
+            "You're working on the ",
+            v("opportunity_name"),
+            " for ",
+            v("client_name"),
+            ". ",
+            ...owner,
+            ".",
+          ],
+    curatedMaterial: [
+      "I attached ",
+      v("attached_materials"),
+      ", including the final proposal, post-decision notes, and supporting pursuit docs.",
+    ],
+    directMaterial: [
+      "I kept this to the most directly relevant material: ",
+      v("primary_context_name"),
+      " plus ",
+      v("attached_materials"),
+      ".",
+    ],
+    broadMaterial: [
+      "I attached ",
+      v("attached_materials"),
+      ", including the final proposal, post-decision notes, supporting pursuit docs, and nearby account notes.",
+    ],
+    peopleMaterial: [
+      "The documents matter, but the valuable part is ",
+      v("context_owner_name"),
+      "'s read on the prior pursuit and what still applies.",
+    ],
+    insight: [
+      "The useful context is both the proposal itself and where the client pushed back on ",
+      v("client_signal"),
+      ".",
+    ],
+    curatedFollowUp: [
+      v("context_owner_name"),
+      " can help judge what still applies for this pitch.",
+    ],
+    optionalFollowUp: [
+      "Use ",
+      v("context_owner_name"),
+      " as an optional follow-up if the prior pushback around ",
+      v("client_signal"),
+      " becomes central.",
+    ],
+    documentCaveat: [
+      "I left out weaker adjacent material so the handoff stays anchored to the prior proposal.",
+    ],
+    broadCaveat: [
+      "The broader material is there for pattern matching, but the prior proposal and post-decision notes should carry the most weight.",
+    ],
+    peopleFollowUp: [
+      v("context_owner_name"),
+      " should be the first follow-up before reusing any prior proposal language.",
+    ],
+    primaryContextType: ["Prior proposal"],
+    supportContextType: ["Post-decision notes and pursuit docs"],
+    supportWhy: ["Shows decision feedback"],
+    supportRecommendedUse: ["Review before client prep"],
+    broadContextType: ["Account and pursuit context"],
+    broadWhy: ["May explain what changed"],
+    broadRecommendedUse: ["Use after the core proposal"],
+    peopleRecommendedUse: ["Judge what still applies"],
+  },
+  {
+    id: "same-client-adjacent-context",
+    priorityOptionId: "recent_account_context",
+    label: "Same client, adjacent context",
+    title: "Adjacent client context",
+    filename: "Adjacent client context.xlsx",
+    cc: ["Account context owner"],
+    ownerRoleDescription: [
+      "worked with another ",
+      v("client_name"),
+      " team in ",
+      v("context_timeframe"),
+      " on a related effort",
+    ],
+    opening: (owner, mode) =>
+      mode === "none"
+        ? [
+            "You're working on the ",
+            v("opportunity_name"),
+            " for ",
+            v("client_name"),
+            ". I found same-client context from a different team, not an exact prior pitch.",
+          ]
+        : [
+            "You're working on the ",
+            v("opportunity_name"),
+            " for ",
+            v("client_name"),
+            ". ",
+            ...owner,
+            ".",
+          ],
+    curatedMaterial: [
+      "I attached ",
+      v("attached_materials"),
+      ": working notes, account context, and delivery notes from that engagement.",
+    ],
+    directMaterial: [
+      "I kept this to the most useful same-client artifacts: ",
+      v("primary_context_name"),
+      " and the delivery notes in ",
+      v("attached_materials"),
+      ".",
+    ],
+    broadMaterial: [
+      "I attached ",
+      v("attached_materials"),
+      ", including the working notes, account context, delivery notes, and recent strategy context.",
+    ],
+    peopleMaterial: [
+      "Because this is adjacent rather than exact, ",
+      v("context_owner_name"),
+      "'s judgment is more useful than sending a large document bundle.",
+    ],
+    insight: [
+      "It is not the same stakeholder group, but some of the same priorities and decision concerns may carry over: ",
+      v("client_signal"),
+      ".",
+    ],
+    curatedFollowUp: [
+      v("context_owner_name"),
+      " can help judge what is still relevant for this pitch.",
+    ],
+    optionalFollowUp: [
+      "Mention ",
+      v("context_owner_name"),
+      " only as an optional follow-up if the adjacent account context starts to matter.",
+    ],
+    documentCaveat: [
+      "I avoided broader account history so the email does not overstate how directly this maps to the current stakeholders.",
+    ],
+    broadCaveat: [
+      "The broader context may help with account orientation, but treat it as directional until ",
+      v("context_owner_name"),
+      " confirms what still applies.",
+    ],
+    peopleFollowUp: [
+      "Start with ",
+      v("context_owner_name"),
+      " before reusing the notes, because the fit depends on which client priorities carried over.",
+    ],
+    primaryContextType: ["Same-client account context"],
+    supportContextType: ["Delivery notes and workshop notes"],
+    supportWhy: ["Shows priorities that may carry over"],
+    supportRecommendedUse: ["Use as directional context"],
+    broadContextType: ["Recent strategy and account history"],
+    broadWhy: ["Helps orient the pitch team"],
+    broadRecommendedUse: ["Use for background only"],
+    peopleRecommendedUse: ["Confirm what still applies"],
+  },
+  {
+    id: "similar-client-or-work",
+    priorityOptionId: "similar_client_work",
+    label: "Similar client or similar work",
+    title: "Comparable pitch context",
+    filename: "Comparable work context.xlsx",
+    cc: ["Comparable pursuit owner"],
+    ownerRoleDescription: [
+      "led that comparable pursuit for ",
+      v("similar_client_name"),
+    ],
+    opening: (owner, mode) =>
+      mode === "none"
+        ? [
+            "You're working on the ",
+            v("opportunity_name"),
+            " for ",
+            v("client_name"),
+            ". I did not find a recent ",
+            v("client_name"),
+            " proposal, but ",
+            v("primary_context_name"),
+            " from ",
+            v("similar_client_name"),
+            " looks like the closest match.",
+          ]
+        : [
+            "You're working on the ",
+            v("opportunity_name"),
+            " for ",
+            v("client_name"),
+            ". I did not find a recent ",
+            v("client_name"),
+            " proposal, but ",
+            v("primary_context_name"),
+            " from ",
+            v("similar_client_name"),
+            " looks like the closest match. ",
+            ...owner,
+            ".",
+          ],
+    curatedMaterial: [
+      "I attached ",
+      v("attached_materials"),
+      ": the final proposal, discovery notes, and supporting appendix.",
+    ],
+    directMaterial: [
+      "I kept this to the closest reusable material: ",
+      v("primary_context_name"),
+      " and the discovery notes in ",
+      v("attached_materials"),
+      ".",
+    ],
+    broadMaterial: [
+      "I attached ",
+      v("attached_materials"),
+      ", including the final proposal, discovery notes, appendix, and adjacent delivery context.",
+    ],
+    peopleMaterial: [
+      "The client is different, so ",
+      v("context_owner_name"),
+      "'s read on what the comparable client cared about matters more than the deck alone.",
+    ],
+    insight: [
+      "The client is different, but the problem and pitch structure are similar enough to be useful: ",
+      v("client_signal"),
+      ".",
+    ],
+    curatedFollowUp: [
+      v("context_owner_name"),
+      " can share what the comparable client cared about most.",
+    ],
+    optionalFollowUp: [
+      "Keep ",
+      v("context_owner_name"),
+      " as an optional follow-up if the team wants to reuse the structure directly.",
+    ],
+    documentCaveat: [
+      "I left out looser examples so the handoff does not make a similar-client match look stronger than it is.",
+    ],
+    broadCaveat: [
+      "The broader material is useful for patterns, but the current client is different, so reuse it selectively.",
+    ],
+    peopleFollowUp: [
+      "Talk to ",
+      v("context_owner_name"),
+      " before reusing the proposal structure, especially around ",
+      v("client_signal"),
+      ".",
+    ],
+    primaryContextType: ["Comparable proposal"],
+    supportContextType: ["Discovery notes and appendix"],
+    supportWhy: ["Shows reusable structure"],
+    supportRecommendedUse: ["Reuse selectively"],
+    broadContextType: ["Adjacent delivery and proposal context"],
+    broadWhy: ["May reveal transferable patterns"],
+    broadRecommendedUse: ["Use for pattern matching"],
+    peopleRecommendedUse: ["Explain what the client cared about"],
+  },
+  {
+    id: "partner-ecosystem-context",
+    priorityOptionId: "partner_ecosystem",
+    label: "Partner or ecosystem context",
+    title: "Partner ecosystem context",
+    filename: "Partner context pack.xlsx",
+    cc: ["Partner context owner"],
+    ownerRoleDescription: [
+      "worked on our prior proposal and can compare it with the ",
+      v("partner_name"),
+      " material",
+    ],
+    opening: (owner, mode) =>
+      mode === "none"
+        ? [
+            "You're working on the ",
+            v("opportunity_name"),
+            " for ",
+            v("client_name"),
+            ". I found our prior proposal plus recent ",
+            v("partner_name"),
+            " material from the partner channel.",
+          ]
+        : [
+            "You're working on the ",
+            v("opportunity_name"),
+            " for ",
+            v("client_name"),
+            ". I found our prior proposal plus recent ",
+            v("partner_name"),
+            " material from the partner channel. ",
+            ...owner,
+            ".",
+          ],
+    curatedMaterial: [
+      "I attached ",
+      v("attached_materials"),
+      ": our prior proposal and the partner-channel material.",
+    ],
+    directMaterial: [
+      "I kept this to the two strongest sources: our prior proposal and ",
+      v("primary_context_name"),
+      " from ",
+      v("partner_name"),
+      ".",
+    ],
+    broadMaterial: [
+      "I attached ",
+      v("attached_materials"),
+      ", including our prior proposal, the partner-channel material, and related alliance context.",
+    ],
+    peopleMaterial: [
+      "The partner material is useful, but ",
+      v("context_owner_name"),
+      " should sanity-check what is current before the team uses it.",
+    ],
+    insight: [
+      "The ",
+      v("partner_name"),
+      " material may help because it frames a similar problem from a different angle: ",
+      v("client_signal"),
+      ".",
+    ],
+    curatedFollowUp: [
+      v("context_owner_name"),
+      " can help separate what is still current from what has changed in the account.",
+    ],
+    optionalFollowUp: [
+      "Keep ",
+      v("context_owner_name"),
+      " as an optional follow-up before reusing any partner-sourced framing.",
+    ],
+    documentCaveat: [
+      "I left out weaker ecosystem material so the handoff stays grounded in the prior proposal and partner-channel source.",
+    ],
+    broadCaveat: [
+      "The alliance context is useful background, but partner material may need a sensitivity check before reuse.",
+    ],
+    peopleFollowUp: [
+      "Start with ",
+      v("context_owner_name"),
+      " so the team can separate current account facts from stale ecosystem signal.",
+    ],
+    primaryContextType: ["Partner-channel material"],
+    supportContextType: ["Prior proposal"],
+    supportWhy: ["Frames a similar problem"],
+    supportRecommendedUse: ["Validate before reuse"],
+    broadContextType: ["Alliance and ecosystem context"],
+    broadWhy: ["May reveal partner angle"],
+    broadRecommendedUse: ["Use after sensitivity review"],
+    peopleRecommendedUse: ["Check what is current"],
+  },
+  {
+    id: "internal-expert-limited-docs",
+    priorityOptionId: "internal_experts",
+    label: "Internal expert, limited documents",
+    title: "Internal expert context",
+    filename: "Internal expert context.xlsx",
+    cc: ["Internal expert"],
+    ownerRoleDescription: [
+      "has worked with the ",
+      v("client_name"),
+      " team on related work before",
+    ],
+    opening: (owner, mode) =>
+      mode === "none"
+        ? [
+            "You're working on the ",
+            v("opportunity_name"),
+            " for ",
+            v("client_name"),
+            ". I did not find a recent final proposal, but there is useful expert context.",
+          ]
+        : [
+            "You're working on the ",
+            v("opportunity_name"),
+            " for ",
+            v("client_name"),
+            ". I did not find a recent final proposal, but ",
+            ...owner,
+            ".",
+          ],
+    curatedMaterial: [
+      "I attached ",
+      v("attached_materials"),
+      ": workshop notes and the short context deck shared with the client.",
+    ],
+    directMaterial: [
+      "I kept this to ",
+      v("primary_context_name"),
+      " and the short context deck in ",
+      v("attached_materials"),
+      ".",
+    ],
+    broadMaterial: [
+      "I attached ",
+      v("attached_materials"),
+      ", including workshop notes, the short context deck, and nearby account notes.",
+    ],
+    peopleMaterial: [
+      "The best context is the person, not the artifacts: ",
+      v("context_owner_name"),
+      " can explain what the client was focused on at the time.",
+    ],
+    insight: [
+      "The notes may be more useful than a full proposal because they show what the client was focused on: ",
+      v("client_signal"),
+      ".",
+    ],
+    curatedFollowUp: [
+      v("context_owner_name"),
+      " can help decide which examples to reuse.",
+    ],
+    optionalFollowUp: [
+      "Mention ",
+      v("context_owner_name"),
+      " as an optional follow-up if the team needs more color than the notes provide.",
+    ],
+    documentCaveat: [
+      "I avoided adding stale or weak documents because there is no recent final proposal to anchor them.",
+    ],
+    broadCaveat: [
+      "The broader account notes may help with orientation, but the workshop notes should carry more weight.",
+    ],
+    peopleFollowUp: [
+      "Start with ",
+      v("context_owner_name"),
+      " before reusing any examples, because the documents are limited.",
+    ],
+    primaryContextType: ["Workshop notes"],
+    supportContextType: ["Short context deck"],
+    supportWhy: ["Shows what the client focused on"],
+    supportRecommendedUse: ["Use before drafting examples"],
+    broadContextType: ["Nearby account notes"],
+    broadWhy: ["May add background"],
+    broadRecommendedUse: ["Use for orientation"],
+    peopleRecommendedUse: ["Decide which examples to reuse"],
+  },
+  {
+    id: "limited-context",
+    priorityOptionId: "limited_context",
+    label: "No relevant prior context",
+    title: "Limited context handoff",
+    filename: "Limited context pack.xlsx",
+    cc: [],
+    ownerRoleDescription: ["owns the next search step"],
+    opening: () => [
+      "You're working on the ",
+      v("opportunity_name"),
+      " for ",
+      v("client_name"),
+      ". I did not find a prior ",
+      v("client_name"),
+      " proposal, a strong comparable pitch, partner material, or anyone with recent account context.",
+    ],
+    curatedMaterial: [
+      "I attached ",
+      v("attached_materials"),
+      ": the standard pitch prep checklist and general proposal template.",
+    ],
+    directMaterial: [
+      "I kept this deliberately thin: ",
+      v("primary_context_name"),
+      " and ",
+      v("attached_materials"),
+      " are useful starting points, but they are not client-specific.",
+    ],
+    broadMaterial: [
+      "I attached ",
+      v("attached_materials"),
+      ", but I did not include weak lookalike examples that might make the context seem stronger than it is.",
+    ],
+    peopleMaterial: [
+      "I did not find a relevant expert to lead with, so the honest handoff is the checklist plus a targeted next search angle.",
+    ],
+    insight: [
+      "I did not want to send a weak match and make it look more relevant than it is.",
+    ],
+    curatedFollowUp: [
+      "Reply here if there is a particular angle you want me to search for, such as ",
+      v("next_search_angle"),
+      ".",
+    ],
+    optionalFollowUp: [
+      "There is no context owner to CC yet; reply with a search angle like ",
+      v("next_search_angle"),
+      " if you want a deeper pass.",
+    ],
+    documentCaveat: [
+      "I avoided weak matches so the recipient can treat this as prep material, not prior client context.",
+    ],
+    broadCaveat: [
+      "The broader bundle is intentionally generic; anything more specific should be treated as unverified until a stronger match appears.",
+    ],
+    peopleFollowUp: [
+      "Use this to decide the next search angle rather than to reuse prior work directly.",
+    ],
+    primaryContextType: ["Standard pitch prep"],
+    supportContextType: ["General proposal template"],
+    supportWhy: ["No stronger match found"],
+    supportRecommendedUse: ["Use as starting point"],
+    broadContextType: ["Generic supporting material"],
+    broadWhy: ["Avoids overstating weak evidence"],
+    broadRecommendedUse: ["Search again if the angle changes"],
+    peopleRecommendedUse: ["Define the next search angle"],
+  },
+];
 
 export const formatStarter = {
   slug: "gathering-context",
@@ -17,36 +898,40 @@ export const formatStarter = {
       "Send consultants the prior work, experts, and caveats they need before a client pitch.",
   },
   dataSourceIds: ["flowcase", "salesforce", "onedrive", "calendar"],
-  industryTags: ["tech-consulting"],
+  industryTags: ["consulting", "tech-consulting"],
   variables: [
     { id: "recipient_name", label: "Recipient name" },
     { id: "client_name", label: "Client name" },
     { id: "opportunity_name", label: "Opportunity name" },
     { id: "context_owner_name", label: "Context owner name" },
     { id: "context_owner_role", label: "Context owner role" },
+    { id: "source_team_or_office", label: "Source team or office" },
+    { id: "context_timeframe", label: "Context timeframe" },
     { id: "primary_context_name", label: "Primary context name" },
-    { id: "primary_context_type", label: "Primary context type" },
     { id: "attached_materials", label: "Attached materials" },
     { id: "relevance_reason", label: "Relevance reason" },
+    { id: "client_signal", label: "Client signal" },
     { id: "context_caveat", label: "Context caveat" },
     { id: "recommended_action", label: "Recommended action" },
     { id: "similar_client_name", label: "Similar client name" },
     { id: "partner_name", label: "Partner name" },
     { id: "sensitivity_note", label: "Sensitivity note" },
+    { id: "next_search_angle", label: "Next search angle" },
   ],
   sampleEmail: {
     subject: "Context for JPMC pitch",
     paragraphs: [
-      "Hi Alex,",
-      "You are working on the JPMC pitch, and Jack London led a prior proposal for them last year.",
-      "I attached the final proposal, post-decision notes, and supporting pursuit docs.",
-      "The most useful context is where the client pushed back on timeline, ownership, and implementation risk.",
-      "Jack is copied here and can help judge what still applies.",
+      "Hey Alex,",
+      "You're working on the JPMC pitch. Jack London, CCed, led a proposal to JPMC from our NYC office last year.",
+      "I attached the final proposal Jack submitted, plus the post-decision notes and a few supporting docs from the pursuit folder.",
+      "The useful context is both the proposal itself and where the client pushed back on timeline, ownership, and implementation risk.",
+      "Jack can help you judge what still applies for this pitch.",
     ],
   },
   details: {
     paragraphs: [
       "Create a context handoff email for IT consulting pitches.",
+      "The format changes based on whether the handoff should lead with prior work, adjacent account context, comparable clients, partner material, internal experts, or an honest limited-context fallback.",
       "The attachment organizes source material, relevance, owners, caveats, and recommended next steps.",
     ],
   },
@@ -59,7 +944,7 @@ export const formatStarter = {
         id: "handoff_priority",
         title: "What should this handoff prioritize?",
         helpText:
-          "Choose the strongest kind of context available for this pitch.",
+          "Choose the strongest example pattern available for this pitch.",
         options: [
           { id: "closest_prior_pitch", label: "Closest prior pitch or proposal" },
           {
@@ -82,7 +967,7 @@ export const formatStarter = {
         id: "bundle_scope",
         title: "How broad should the context bundle be?",
         helpText:
-          "Choose how selective the handoff should be with supporting material.",
+          "Choose how selective the handoff should be with documents and attachments.",
         options: [
           {
             id: "direct_docs_only",
@@ -103,7 +988,7 @@ export const formatStarter = {
         id: "people_handling",
         title: "How should people with relevant context be handled?",
         helpText:
-          "Choose whether the email should directly involve context owners.",
+          "Choose whether context owners should be copied directly or only mentioned.",
         options: [
           { id: "cc_by_default", label: "CC them by default" },
           { id: "optional_followups", label: "Mention them as optional follow-ups" },
@@ -116,431 +1001,15 @@ export const formatStarter = {
       },
     ],
     rules: [
-      {
-        id: "same-client-prior-pitch",
-        startingPointId: "same-client-prior-pitch",
-        answers: { handoff_priority: "closest_prior_pitch" },
-      },
-      {
-        id: "same-client-adjacent-context",
-        startingPointId: "same-client-adjacent-context",
-        answers: { handoff_priority: "recent_account_context" },
-      },
-      {
-        id: "internal-expert-limited-docs",
-        startingPointId: "internal-expert-limited-docs",
-        answers: { handoff_priority: "internal_experts" },
-      },
-      {
-        id: "similar-client-or-work",
-        startingPointId: "similar-client-or-work",
-        answers: { handoff_priority: "similar_client_work" },
-      },
-      {
-        id: "partner-ecosystem-context",
-        startingPointId: "partner-ecosystem-context",
-        answers: { handoff_priority: "partner_ecosystem" },
-      },
-      {
-        id: "limited-context",
-        startingPointId: "limited-context",
-        answers: { handoff_priority: "limited_context" },
-      },
+      ...scenarioDefinitions.flatMap(createScenarioRules),
       {
         id: "default",
-        startingPointId: "same-client-prior-pitch",
+        startingPointId: "limited-context-curated",
         answers: {},
       },
     ],
   },
-  startingPoints: [
-    {
-      id: "same-client-prior-pitch",
-      label: "Same client, prior pitch",
-      emailContent: {
-        title: "Same-client pitch context",
-        to: ["Pitch owner"],
-        cc: ["Prior pitch owner"],
-        attachment: seededSpreadsheetAttachment("Same client context pack.xlsx", [
-          [
-            cell("Source material"),
-            cell("Context type"),
-            cell("Why it matters"),
-            cell("Owner"),
-            cell("Recommended use"),
-            cell("Caveat or sensitivity"),
-          ],
-          [
-            cell(variable("primary_context_name")),
-            cell(variable("primary_context_type")),
-            cell(variable("relevance_reason")),
-            cell(variable("context_owner_name")),
-            cell(variable("recommended_action")),
-            cell(variable("sensitivity_note")),
-          ],
-          [
-            cell(variable("attached_materials")),
-            cell("Same client history"),
-            cell("Prior proposal feedback"),
-            cell(variable("context_owner_role")),
-            cell("Review before client prep"),
-            cell(variable("context_caveat")),
-          ],
-        ]),
-        body: [
-          paragraph("same-client-greeting", [
-            text("Hi "),
-            variable("recipient_name"),
-            text(","),
-          ]),
-          paragraph("same-client-summary", [
-            text("Sharing context for the "),
-            variable("opportunity_name"),
-            text(" pitch at "),
-            variable("client_name"),
-            text(". "),
-            variable("context_owner_name"),
-            text(" worked on "),
-            variable("primary_context_name"),
-            text(" and can help judge what still applies."),
-          ]),
-          paragraph("same-client-materials", [
-            text("I attached "),
-            variable("attached_materials"),
-            text(" because "),
-            variable("relevance_reason"),
-            text("."),
-          ]),
-          paragraph("same-client-next-step", [
-            text("Use this to "),
-            variable("recommended_action"),
-            text(". The main caveat is "),
-            variable("context_caveat"),
-            text("."),
-          ]),
-        ],
-      },
-    },
-    {
-      id: "same-client-adjacent-context",
-      label: "Same client, adjacent context",
-      emailContent: {
-        title: "Adjacent client context",
-        to: ["Pitch owner"],
-        cc: ["Account team"],
-        attachment: seededSpreadsheetAttachment("Adjacent client context.xlsx", [
-          [
-            cell("Source material"),
-            cell("Context type"),
-            cell("Why it matters"),
-            cell("Owner"),
-            cell("Recommended use"),
-            cell("Caveat or sensitivity"),
-          ],
-          [
-            cell(variable("primary_context_name")),
-            cell(variable("primary_context_type")),
-            cell(variable("relevance_reason")),
-            cell(variable("context_owner_name")),
-            cell(variable("recommended_action")),
-            cell(variable("context_caveat")),
-          ],
-          [
-            cell(variable("attached_materials")),
-            cell("Adjacent account context"),
-            cell("Client priorities may carry over"),
-            cell(variable("context_owner_role")),
-            cell("Use as directional context"),
-            cell(variable("sensitivity_note")),
-          ],
-        ]),
-        body: [
-          paragraph("adjacent-greeting", [
-            text("Hi "),
-            variable("recipient_name"),
-            text(","),
-          ]),
-          paragraph("adjacent-summary", [
-            text("I found related context for "),
-            variable("client_name"),
-            text(" that may help with "),
-            variable("opportunity_name"),
-            text(". It is not the same stakeholder group, but it captures useful account context."),
-          ]),
-          paragraph("adjacent-materials", [
-            text("The best source is "),
-            variable("primary_context_name"),
-            text(", with "),
-            variable("attached_materials"),
-            text(" included for support."),
-          ]),
-          paragraph("adjacent-next-step", [
-            variable("context_owner_name"),
-            text(" can help separate what is still relevant. I would use this to "),
-            variable("recommended_action"),
-            text("."),
-          ]),
-        ],
-      },
-    },
-    {
-      id: "similar-client-or-work",
-      label: "Similar client or similar work",
-      emailContent: {
-        title: "Comparable pitch context",
-        to: ["Pitch owner"],
-        cc: ["Pursuit team"],
-        attachment: seededSpreadsheetAttachment("Comparable work context.xlsx", [
-          [
-            cell("Source material"),
-            cell("Context type"),
-            cell("Why it matters"),
-            cell("Owner"),
-            cell("Recommended use"),
-            cell("Caveat or sensitivity"),
-          ],
-          [
-            cell(variable("primary_context_name")),
-            cell("Comparable work for ", variable("similar_client_name")),
-            cell(variable("relevance_reason")),
-            cell(variable("context_owner_name")),
-            cell(variable("recommended_action")),
-            cell(variable("context_caveat")),
-          ],
-          [
-            cell(variable("attached_materials")),
-            cell(variable("primary_context_type")),
-            cell("Closest available pattern"),
-            cell(variable("context_owner_role")),
-            cell("Reuse selectively"),
-            cell(variable("sensitivity_note")),
-          ],
-        ]),
-        body: [
-          paragraph("similar-greeting", [
-            text("Hi "),
-            variable("recipient_name"),
-            text(","),
-          ]),
-          paragraph("similar-summary", [
-            text("I did not find a strong same-client pitch for "),
-            variable("client_name"),
-            text(", but "),
-            variable("primary_context_name"),
-            text(" from "),
-            variable("similar_client_name"),
-            text(" is the closest match."),
-          ]),
-          paragraph("similar-materials", [
-            text("I attached "),
-            variable("attached_materials"),
-            text(" because "),
-            variable("relevance_reason"),
-            text("."),
-          ]),
-          paragraph("similar-next-step", [
-            text("Use it to "),
-            variable("recommended_action"),
-            text(", with this caveat: "),
-            variable("context_caveat"),
-            text("."),
-          ]),
-        ],
-      },
-    },
-    {
-      id: "partner-ecosystem-context",
-      label: "Partner or ecosystem context",
-      emailContent: {
-        title: "Partner ecosystem context",
-        to: ["Pitch owner"],
-        cc: ["Partner lead"],
-        attachment: seededSpreadsheetAttachment("Partner context pack.xlsx", [
-          [
-            cell("Source material"),
-            cell("Context type"),
-            cell("Why it matters"),
-            cell("Owner"),
-            cell("Recommended use"),
-            cell("Caveat or sensitivity"),
-          ],
-          [
-            cell(variable("primary_context_name")),
-            cell("Partner context from ", variable("partner_name")),
-            cell(variable("relevance_reason")),
-            cell(variable("context_owner_name")),
-            cell(variable("recommended_action")),
-            cell(variable("sensitivity_note")),
-          ],
-          [
-            cell(variable("attached_materials")),
-            cell(variable("primary_context_type")),
-            cell("Ecosystem signal"),
-            cell(variable("context_owner_role")),
-            cell("Validate before reuse"),
-            cell(variable("context_caveat")),
-          ],
-        ]),
-        body: [
-          paragraph("partner-greeting", [
-            text("Hi "),
-            variable("recipient_name"),
-            text(","),
-          ]),
-          paragraph("partner-summary", [
-            text("For the "),
-            variable("client_name"),
-            text(" pitch, the most useful ecosystem signal is from "),
-            variable("partner_name"),
-            text("."),
-          ]),
-          paragraph("partner-materials", [
-            text("I included "),
-            variable("primary_context_name"),
-            text(" and "),
-            variable("attached_materials"),
-            text(" because "),
-            variable("relevance_reason"),
-            text("."),
-          ]),
-          paragraph("partner-next-step", [
-            variable("context_owner_name"),
-            text(" can confirm what is current. The safe next step is to "),
-            variable("recommended_action"),
-            text("."),
-          ]),
-        ],
-      },
-    },
-    {
-      id: "internal-expert-limited-docs",
-      label: "Internal expert, limited documents",
-      emailContent: {
-        title: "Internal expert context",
-        to: ["Pitch owner"],
-        cc: ["Context owner"],
-        attachment: seededSpreadsheetAttachment("Internal expert context.xlsx", [
-          [
-            cell("Source material"),
-            cell("Context type"),
-            cell("Why it matters"),
-            cell("Owner"),
-            cell("Recommended use"),
-            cell("Caveat or sensitivity"),
-          ],
-          [
-            cell(variable("primary_context_name")),
-            cell(variable("primary_context_type")),
-            cell(variable("relevance_reason")),
-            cell(variable("context_owner_name")),
-            cell(variable("recommended_action")),
-            cell(variable("context_caveat")),
-          ],
-          [
-            cell(variable("attached_materials")),
-            cell("Expert-led context"),
-            cell("Documents are limited"),
-            cell(variable("context_owner_role")),
-            cell("Follow up directly"),
-            cell(variable("sensitivity_note")),
-          ],
-        ]),
-        body: [
-          paragraph("expert-greeting", [
-            text("Hi "),
-            variable("recipient_name"),
-            text(","),
-          ]),
-          paragraph("expert-summary", [
-            text("I did not find a strong final proposal for "),
-            variable("client_name"),
-            text(", but "),
-            variable("context_owner_name"),
-            text(" has relevant context as "),
-            variable("context_owner_role"),
-            text("."),
-          ]),
-          paragraph("expert-materials", [
-            text("I attached "),
-            variable("attached_materials"),
-            text(", especially "),
-            variable("primary_context_name"),
-            text(", because "),
-            variable("relevance_reason"),
-            text("."),
-          ]),
-          paragraph("expert-next-step", [
-            text("The best next step is to "),
-            variable("recommended_action"),
-            text(". The main limitation is "),
-            variable("context_caveat"),
-            text("."),
-          ]),
-        ],
-      },
-    },
-    {
-      id: "limited-context",
-      label: "No relevant prior context",
-      emailContent: {
-        title: "Limited context handoff",
-        to: ["Pitch owner"],
-        cc: ["Pursuit team"],
-        attachment: seededSpreadsheetAttachment("Limited context pack.xlsx", [
-          [
-            cell("Source material"),
-            cell("Context type"),
-            cell("Why it matters"),
-            cell("Owner"),
-            cell("Recommended use"),
-            cell("Caveat or sensitivity"),
-          ],
-          [
-            cell(variable("primary_context_name")),
-            cell(variable("primary_context_type")),
-            cell("Standard prep support"),
-            cell(variable("context_owner_name")),
-            cell(variable("recommended_action")),
-            cell(variable("context_caveat")),
-          ],
-          [
-            cell(variable("attached_materials")),
-            cell("General template"),
-            cell("No stronger match found"),
-            cell(variable("context_owner_role")),
-            cell("Use as a starting point"),
-            cell(variable("sensitivity_note")),
-          ],
-        ]),
-        body: [
-          paragraph("limited-greeting", [
-            text("Hi "),
-            variable("recipient_name"),
-            text(","),
-          ]),
-          paragraph("limited-summary", [
-            text("I did not find a meaningful prior proposal, adjacent account context, similar-client pitch, partner signal, or internal expert for "),
-            variable("client_name"),
-            text("."),
-          ]),
-          paragraph("limited-materials", [
-            text("Rather than send a weak match, I attached "),
-            variable("attached_materials"),
-            text(" and "),
-            variable("primary_context_name"),
-            text(" as standard prep material."),
-          ]),
-          paragraph("limited-next-step", [
-            text("Use this to "),
-            variable("recommended_action"),
-            text(". I will avoid overstating the evidence; the current caveat is "),
-            variable("context_caveat"),
-            text("."),
-          ]),
-        ],
-      },
-    },
-  ],
+  startingPoints: scenarioDefinitions.flatMap(createScenarioStartingPoints),
   showInGallery: true,
   sortOrder: 26,
   status: "active",
