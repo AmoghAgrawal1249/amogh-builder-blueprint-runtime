@@ -785,78 +785,12 @@ const scenarioDefinitions: readonly ScenarioDefinition[] = [
     broadRecommendedUse: ["Use for orientation"],
     peopleRecommendedUse: ["Decide which examples to reuse"],
   },
-  {
-    id: "limited-context",
-    priorityOptionId: "limited_context",
-    label: "No relevant prior context",
-    title: "Limited context handoff",
-    filename: "Limited context pack.xlsx",
-    cc: [],
-    ownerRoleDescription: ["owns the next search step"],
-    opening: () => [
-      "You're working on the ",
-      v("client_name"),
-      " pitch. I did not find a prior ",
-      v("client_name"),
-      " proposal, a strong comparable pitch, or anyone with recent account context.",
-    ],
-    curatedMaterial: [
-      "I attached ",
-      v("attached_materials"),
-      ", which may still be useful as starting points.",
-    ],
-    directMaterial: [
-      "I kept this deliberately thin: ",
-      v("primary_context_name"),
-      " and ",
-      v("attached_materials"),
-      " are useful starting points, but they are not client-specific.",
-    ],
-    broadMaterial: [
-      "I attached ",
-      v("attached_materials"),
-      ", but I did not include weak lookalike examples that might make the context seem stronger than it is.",
-    ],
-    peopleMaterial: [
-      "I did not find a relevant expert to lead with, so the honest handoff is the checklist plus a targeted next search angle.",
-    ],
-    insight: [
-      "I'll keep looking for more specific context, but I did not want to send a weak match and make it look more relevant than it is.",
-    ],
-    curatedFollowUp: [
-      "Reply here if there is a particular angle you want me to search for, such as ",
-      v("next_search_angle"),
-      ".",
-    ],
-    optionalFollowUp: [
-      "There is no context owner to CC yet; reply with a search angle like ",
-      v("next_search_angle"),
-      " if you want a deeper pass.",
-    ],
-    documentCaveat: [
-      "I avoided weak matches so the recipient can treat this as prep material, not prior client context.",
-    ],
-    broadCaveat: [
-      "The broader bundle is intentionally generic; anything more specific should be treated as unverified until a stronger match appears.",
-    ],
-    peopleFollowUp: [
-      "Use this to decide the next search angle rather than to reuse prior work directly.",
-    ],
-    primaryContextType: ["Standard pitch prep"],
-    supportContextType: ["General proposal template"],
-    supportWhy: ["No stronger match found"],
-    supportRecommendedUse: ["Use as starting point"],
-    broadContextType: ["Generic supporting material"],
-    broadWhy: ["Avoids overstating weak evidence"],
-    broadRecommendedUse: ["Search again if the angle changes"],
-    peopleRecommendedUse: ["Define the next search angle"],
-  },
 ];
 
 export const formatStarter = {
   slug: "gathering-context",
   defaultPresentation: {
-    title: "Gathering context",
+    title: "Context handoff",
     description:
       "Send consultants the prior work, experts, and caveats they need before a client pitch.",
   },
@@ -878,7 +812,6 @@ export const formatStarter = {
     { id: "similar_client_name", label: "Similar client name" },
     { id: "partner_name", label: "Partner name" },
     { id: "sensitivity_note", label: "Sensitivity note" },
-    { id: "next_search_angle", label: "Next search angle" },
   ],
   sampleEmail: {
     subject: "Context for JPMC pitch",
@@ -892,8 +825,8 @@ export const formatStarter = {
   },
   details: {
     paragraphs: [
-      "Create a context handoff email for IT consulting pitches.",
-      "The format changes based on whether the handoff should lead with prior work, adjacent account context, comparable clients, partner material, internal experts, or an honest limited-context fallback.",
+      "Create a context handoff email for IT consulting pitches when useful material already exists.",
+      "The format changes based on whether the handoff should lead with prior work, adjacent account context, comparable clients, partner material, or internal experts.",
       "The attachment organizes source material, relevance, owners, caveats, and recommended next steps.",
     ],
   },
@@ -904,9 +837,9 @@ export const formatStarter = {
     questions: [
       {
         id: "handoff_priority",
-        title: "What should this handoff prioritize?",
+        title: "What useful context did you find?",
         helpText:
-          "Choose the strongest example pattern available for this pitch.",
+          "Choose the strongest source material available for this pitch.",
         options: [
           { id: "closest_prior_pitch", label: "Closest prior pitch or proposal" },
           {
@@ -922,7 +855,6 @@ export const formatStarter = {
             label: "Comparable work from similar clients",
           },
           { id: "partner_ecosystem", label: "Partner or ecosystem context" },
-          { id: "limited_context", label: "No strong prior context found" },
         ],
       },
       {
@@ -966,7 +898,7 @@ export const formatStarter = {
       ...scenarioDefinitions.flatMap(createScenarioRules),
       {
         id: "default",
-        startingPointId: "limited-context-curated",
+        startingPointId: "same-client-prior-pitch-curated",
         answers: {},
       },
     ],

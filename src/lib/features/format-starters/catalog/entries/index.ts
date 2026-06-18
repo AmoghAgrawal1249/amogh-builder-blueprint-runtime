@@ -5,6 +5,7 @@ import { formatStarter as callIntelligence } from './call-intelligence';
 import { formatStarter as financeWhitespaceAnalysis } from './finance-whitespace-analysis';
 import { formatStarter as techConsultingCallIntelligence } from './tech-consulting-call-intelligence';
 import { formatStarter as gatheringContext } from './gathering-context';
+import { formatStarter as contextRequest } from './context-request';
 import { formatStarter as topOfMind } from './top-of-mind';
 
 export const formatStarterEntries = [
@@ -15,5 +16,6 @@ export const formatStarterEntries = [
 	financeWhitespaceAnalysis,
 	techConsultingCallIntelligence,
 	gatheringContext,
+	contextRequest,
 	topOfMind
 ] as const;
