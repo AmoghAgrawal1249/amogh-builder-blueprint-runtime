@@ -25,8 +25,10 @@ Week 3 can add trajectory search around those deterministic decisions, but it sh
 
 - `types.ts`: domain types for context needs, sources, claims, owner signals, scores, assessments, bundles, and fixtures.
 - `policy.ts`: centralized thresholds, normalized priors, and confidence weights.
+- `scoring.ts`: deterministic source-level scoring and tiering.
 - `index.ts`: public exports.
 - `policy.test.ts`: invariants for the normalized scoring policy.
+- `scoring.test.ts`: fixture-backed tests for source-level scoring behavior.
 
 ## Scoring Shape
 
@@ -63,6 +65,40 @@ This matters because a source can be highly specific and authoritative while sti
 
 Sensitivity should behave as an automation gate, not just a minor score penalty.
 
+## Scoring API
+
+Use `assessSourceForContext` to score one source against one context need:
+
+```ts
+const assessment = assessSourceForContext({
+	contextNeed,
+	source,
+	allSources,
+	now
+});
+```
+
+`now` is injectable so freshness scoring stays deterministic in tests and fixtures.
+
+The assessment includes:
+
+- `scores.confidence`: normalized confidence scores for each confidence dimension.
+- `scores.risk`: normalized risk scores, currently sensitivity.
+- `aggregateConfidence`: weighted confidence using `SOURCE_RANKING_CONFIDENCE_WEIGHTS`.
+- `aggregateRisk`: source risk used by tiering.
+- `tier`: `strong`, `medium`, or `weak` using `SOURCE_TIER_POLICY`.
+- `matchedClaims`: source claims matching the context need.
+- `explanations`: one explanation per score dimension.
+- `weaknesses`: low-confidence or high-risk issues the UI can surface.
+
+Tiering is policy-driven:
+
+- Strong sources need high confidence, low risk, enough directness, and enough specificity.
+- Medium sources need acceptable confidence and risk.
+- Weak sources fail those gates or carry too much risk.
+
+Corroboration can use `allSources`, but full bundle-level assessment is intentionally left for the next implementation step.
+
 ## Fixture Data
 
 Synthetic fixtures live in `src/lib/features/source-ranking/fixtures`.
@@ -77,10 +113,10 @@ Run:
 npm test
 ```
 
-Current tests validate policy invariants and fixture integrity. They do not yet validate scoring output because scoring functions are a Week 1 Day 2 task.
+Current tests validate policy invariants, fixture integrity, and source-level scoring behavior.
 
 ## Next Implementation Step
 
-Implement pure scoring functions that produce `SourceAssessment` values from a `ContextNeed` and `ContextSource`.
+Implement evidence-bundle assessment that combines multiple `SourceAssessment` values into an `EvidenceAssessment`.
 
 Keep scoring deterministic and explainable. Every score should be paired with a reason that can be shown in the prototype UI.
