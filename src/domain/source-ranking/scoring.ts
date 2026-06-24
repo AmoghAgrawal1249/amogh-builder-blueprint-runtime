@@ -236,7 +236,11 @@ function scoreCorroboration(
 	source: ContextSource,
 	allSources: readonly ContextSource[]
 ): ScoreResult<'corroboration'> {
-	const matchedClaimKinds = new Set(getMatchedClaims(contextNeed, source).map((claim) => claim.kind));
+	const matchedClaimKinds = new Set(
+		getMatchedClaims(contextNeed, source)
+			.filter(isSupportingClaim)
+			.map((claim) => claim.kind)
+	);
 
 	if (matchedClaimKinds.size === 0) {
 		return {
@@ -250,7 +254,7 @@ function scoreCorroboration(
 		(candidateSource) =>
 			candidateSource.id !== source.id &&
 			candidateSource.claims.some(
-				(claim) => matchedClaimKinds.has(claim.kind) && claim.support !== 'weak'
+				(claim) => matchedClaimKinds.has(claim.kind) && claim.support !== 'weak' && isSupportingClaim(claim)
 			)
 	).length;
 
@@ -405,6 +409,10 @@ function getClaimSupportScore(support: SourceClaimSupport) {
 	}
 
 	return 0.28;
+}
+
+function isSupportingClaim(claim: SourceClaim) {
+	return (claim.stance ?? 'supports') === 'supports';
 }
 
 function getMaxClaimSensitivity(claims: readonly SourceClaim[]) {

@@ -26,9 +26,11 @@ Week 3 can add trajectory search around those deterministic decisions, but it sh
 - `types.ts`: domain types for context needs, sources, claims, owner signals, scores, assessments, bundles, and fixtures.
 - `policy.ts`: centralized thresholds, normalized priors, and confidence weights.
 - `scoring.ts`: deterministic source-level scoring and tiering.
+- `evidence.ts`: deterministic bundle-level assessment, aggregation, corroboration, and conflict detection.
 - `index.ts`: public exports.
 - `policy.test.ts`: invariants for the normalized scoring policy.
 - `scoring.test.ts`: fixture-backed tests for source-level scoring behavior.
+- `evidence.test.ts`: fixture-backed tests for evidence-bundle assessment behavior.
 
 ## Scoring Shape
 
@@ -99,11 +101,64 @@ Tiering is policy-driven:
 
 Corroboration can use `allSources`, but full bundle-level assessment is intentionally left for the next implementation step.
 
+## Bundle Assessment API
+
+Use `assessEvidenceBundle` to assess all sources in one evidence bundle:
+
+```ts
+const assessment = assessEvidenceBundle({
+	bundle,
+	now
+});
+```
+
+Bundle assessment calls `assessSourceForContext` for every source, then combines source assessments into an `EvidenceAssessment`.
+
+The output includes:
+
+- `sourceAssessments`: one source-level assessment per source.
+- `strongestTier`: strongest source tier in the bundle.
+- `aggregateConfidence`: best-source weighted confidence.
+- `aggregateRisk`: best-source weighted risk.
+- `bestSourceIds`: source IDs with the highest source-level confidence.
+- `likelyOwnerSignals`: deduped likely owners, ordered by owner-signal confidence.
+- `corroboratedClaimKinds`: claim kinds supported by at least two sources.
+- `conflictingClaimKinds`: claim kinds with both support and contradiction stances.
+- `unresolvedWeaknesses`: deduped weaknesses from non-strong sources.
+
+Bundle aggregation uses an 80/20 split from `EVIDENCE_BUNDLE_AGGREGATION_POLICY`:
+
+- 80% comes from the best source or tied best sources.
+- 20% comes from the remaining supporting sources.
+
+When a bundle has only one source, the support side falls back to that same source so single-source bundles are not artificially penalized.
+
+## Claim Stance
+
+Claims support the context need by default. A claim can set `stance: 'contradicts'` when it is relevant evidence but argues against another source's claim.
+
+This lets the domain model represent conflict without making a Week 2 automation decision.
+
+Example:
+
+```ts
+{
+	kind: 'implementationRisk',
+	support: 'direct',
+	stance: 'contradicts',
+	text: 'Timeline risk should not be stated as active.'
+}
+```
+
+Day 3 only detects conflict at the claim-kind level. It does not decide whether that conflict should produce user review or blocking; Week 2 owns that decision.
+
 ## Fixture Data
 
 Synthetic fixtures live in `src/lib/features/source-ranking/fixtures`.
 
-They are prototype evidence bundles used to validate the domain shape and later exercise the scoring and decision engines. Current fixtures cover strong, medium, and weak evidence examples.
+They are prototype evidence bundles used to validate the domain shape and later exercise the scoring and decision engines. Current fixtures cover strong, medium, weak, review, request, and blocked evidence examples.
+
+Each fixture includes local truth metadata under `expected`. These truth values describe the intended future automation decision, expected source tiers, primary source IDs, likely owner IDs, validated claims, weak claims, review prompt type, request owner, or blocked reason. They are hand-authored labels for tests and prototypes, not runtime decisions.
 
 ## Testing
 
@@ -113,10 +168,10 @@ Run:
 npm test
 ```
 
-Current tests validate policy invariants, fixture integrity, and source-level scoring behavior.
+Current tests validate policy invariants, fixture integrity, local truth metadata, source-level scoring behavior, and bundle-level evidence assessment behavior.
 
 ## Next Implementation Step
 
-Implement evidence-bundle assessment that combines multiple `SourceAssessment` values into an `EvidenceAssessment`.
+Implement automation-decision policy that maps an `EvidenceAssessment` into auto handoff, context request, focused user review, or blocked.
 
 Keep scoring deterministic and explainable. Every score should be paired with a reason that can be shown in the prototype UI.

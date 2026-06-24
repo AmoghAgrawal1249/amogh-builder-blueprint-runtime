@@ -108,3 +108,8 @@ export const SOURCE_SENSITIVITY_PRIORS = {
 	medium: 0.52,
 	high: 0.86
 } as const satisfies Record<SourceSensitivityLevel, NormalizedScore>;
+
+export const EVIDENCE_BUNDLE_AGGREGATION_POLICY = {
+	primaryWeight: 0.8,
+	supportingWeight: 0.2
+} as const;

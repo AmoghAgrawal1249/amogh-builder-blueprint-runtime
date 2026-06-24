@@ -38,6 +38,7 @@ export type SourceClaimKind =
 	| 'clientConcern'
 	| 'decisionFeedback'
 	| 'implementationRisk'
+	| 'renewalRisk'
 	| 'pricingContext'
 	| 'timelineContext'
 	| 'stakeholderContext'
@@ -45,6 +46,8 @@ export type SourceClaimKind =
 	| 'other';
 
 export type SourceClaimSupport = 'direct' | 'inferred' | 'weak';
+
+export type SourceClaimStance = 'supports' | 'contradicts';
 
 export type SourceSensitivityLevel = 'low' | 'medium' | 'high';
 
@@ -96,6 +99,7 @@ export type SourceClaim = {
 	kind: SourceClaimKind;
 	text: string;
 	support: SourceClaimSupport;
+	stance?: SourceClaimStance;
 	sensitivity: SourceSensitivityLevel;
 };
 
@@ -167,12 +171,39 @@ export type EvidenceAssessment = {
 	bestSourceIds: readonly string[];
 	likelyOwnerSignals: readonly OwnerSignal[];
 	corroboratedClaimKinds: readonly SourceClaimKind[];
+	conflictingClaimKinds: readonly SourceClaimKind[];
 	unresolvedWeaknesses: readonly SourceWeakness[];
 };
 
+export type EvidenceFixtureDecisionKind =
+	| 'autoHandoff'
+	| 'generateContextRequest'
+	| 'needsUserReview'
+	| 'blocked';
+
+export type EvidenceFixtureReviewPromptKind =
+	| 'staleSource'
+	| 'similarClientMatch'
+	| 'unclearOwner'
+	| 'sensitiveMaterial'
+	| 'unsupportedClaim';
+
+export type EvidenceFixtureTruth = {
+	strongestTier: SourceTier;
+	sourceTiers: Record<string, SourceTier>;
+	automationDecision: EvidenceFixtureDecisionKind;
+	primarySourceIds: readonly string[];
+	likelyOwnerIds: readonly string[];
+	validatedClaimIds: readonly string[];
+	weakClaimIds: readonly string[];
+	contextRequestOwnerId?: string;
+	reviewPromptKind?: EvidenceFixtureReviewPromptKind;
+	blockedReason?: string;
+	corroboratedClaimKinds?: readonly SourceClaimKind[];
+	conflictingClaimKinds?: readonly SourceClaimKind[];
+	notes: readonly string[];
+};
+
 export type EvidenceFixture = EvidenceBundle & {
-	expected?: {
-		strongestTier?: SourceTier;
-		sourceTiers?: Record<string, SourceTier>;
-	};
+	expected: EvidenceFixtureTruth;
 };

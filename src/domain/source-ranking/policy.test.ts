@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	OWNER_SIGNAL_PRIORS,
 	SOURCE_DIRECTNESS_PRIORS,
+	EVIDENCE_BUNDLE_AGGREGATION_POLICY,
 	SOURCE_FRESHNESS_POLICY,
 	SOURCE_KIND_AUTHORITY_PRIORS,
 	SOURCE_KIND_RELIABILITY_PRIORS,
@@ -65,6 +66,18 @@ describe('source ranking policy', () => {
 		);
 		expect(SOURCE_FRESHNESS_POLICY.agingDays).toBeLessThan(
 			SOURCE_FRESHNESS_POLICY.staleDays
+		);
+	});
+
+	it('uses a normalized evidence bundle aggregation split', () => {
+		expectNormalizedScore(EVIDENCE_BUNDLE_AGGREGATION_POLICY.primaryWeight);
+		expectNormalizedScore(EVIDENCE_BUNDLE_AGGREGATION_POLICY.supportingWeight);
+		expect(
+			EVIDENCE_BUNDLE_AGGREGATION_POLICY.primaryWeight +
+				EVIDENCE_BUNDLE_AGGREGATION_POLICY.supportingWeight
+		).toBeCloseTo(1, 8);
+		expect(EVIDENCE_BUNDLE_AGGREGATION_POLICY.primaryWeight).toBeGreaterThan(
+			EVIDENCE_BUNDLE_AGGREGATION_POLICY.supportingWeight
 		);
 	});
 });

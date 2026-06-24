@@ -72,6 +72,21 @@ describe('source scoring', () => {
 		expect(assessment.tier).toBe(expectedTier);
 	});
 
+	it('matches local source-tier truth values for every fixture source', () => {
+		for (const fixture of sourceRankingFixtures) {
+			for (const source of fixture.sources) {
+				const assessment = assessSourceForContext({
+					contextNeed: fixture.contextNeed,
+					source,
+					allSources: fixture.sources,
+					now: NOW
+				});
+
+				expect(assessment.tier).toBe(fixture.expected.sourceTiers[source.id]);
+			}
+		}
+	});
+
 	it('keeps every generated score normalized', () => {
 		for (const fixture of sourceRankingFixtures) {
 			for (const source of fixture.sources) {
