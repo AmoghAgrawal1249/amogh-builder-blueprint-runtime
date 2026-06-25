@@ -160,6 +160,34 @@ They are prototype evidence bundles used to validate the domain shape and later 
 
 Each fixture includes local truth metadata under `expected`. These truth values describe the intended future automation decision, expected source tiers, primary source IDs, likely owner IDs, validated claims, weak claims, review prompt type, request owner, or blocked reason. They are hand-authored labels for tests and prototypes, not runtime decisions.
 
+## Evidence Lab Route
+
+The hidden authenticated prototype route lives at:
+
+```txt
+/internal-data/evidence-lab
+```
+
+It is intentionally direct-URL only and is not linked from app navigation.
+
+The route server-loads fixture assessments through `buildEvidenceLabViewData`, then renders a product-like dashboard for inspecting fixture truth, source assessments, bundle-level evidence, corroboration, conflicts, and unresolved weaknesses.
+
+Supported query params:
+
+- `fixture`: selected fixture id.
+- `now`: assessment timestamp. ISO strings and `datetime-local` values are supported.
+- `hide`: source ids to hide before assessment. May be repeated or comma-separated.
+
+Examples:
+
+```txt
+/internal-data/evidence-lab?fixture=corroborated-acme-client-concern
+/internal-data/evidence-lab?fixture=corroborated-acme-client-concern&hide=source-acme-meeting-notes-readiness
+/internal-data/evidence-lab?fixture=strong-current-account-note&now=2027-06-15T12:00
+```
+
+The route does not use Convex and does not persist anything. It is a deterministic fixture browser for Week 1 prototyping.
+
 ## Testing
 
 Run:

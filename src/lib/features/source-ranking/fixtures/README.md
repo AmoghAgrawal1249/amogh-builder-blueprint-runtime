@@ -68,6 +68,8 @@ Truth metadata includes:
 
 `source-ranking-fixtures.test.ts` checks that fixture IDs are unique, expected source tiers reference existing sources, required context claims are present, dates are valid, owner confidence values are normalized, source-kind coverage is present, automation decisions are covered, local truth metadata references real source, claim, and owner IDs, and corroboration/conflict truth cases exist.
 
+The hidden evidence lab route at `/internal-data/evidence-lab` uses these fixtures directly. It can select fixtures with `fixture`, change scoring time with `now`, and hide sources with `hide` query params.
+
 ## Adding More Fixtures
 
 Prefer adding targeted cases that teach the ranking model a new behavior.
