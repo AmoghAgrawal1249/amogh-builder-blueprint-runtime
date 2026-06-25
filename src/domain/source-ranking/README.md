@@ -160,19 +160,21 @@ They are prototype evidence bundles used to validate the domain shape and later 
 
 Each fixture includes local truth metadata under `expected`. These truth values describe the intended future automation decision, expected source tiers, primary source IDs, likely owner IDs, validated claims, weak claims, review prompt type, request owner, or blocked reason. They are hand-authored labels for tests and prototypes, not runtime decisions.
 
-## Evidence Lab Route
+## Public Evidence Lab Route
 
-The hidden authenticated prototype route lives at:
+The public prototype route lives at:
 
 ```txt
-/internal-data/evidence-lab
+/evidence-lab
 ```
 
-It is intentionally direct-URL only and is not linked from app navigation.
+It does not require the authenticated app shell.
 
-The route starts as a data-source catalog. Selecting a fixture opens the dashboard for that fixture. From the dashboard, individual source records can be opened in a reader panel.
+The route starts as a data-source catalog and upload surface. Selecting a fixture or uploading files opens the dashboard. From the dashboard, individual source records can be opened in a reader panel.
 
 The route server-loads fixture assessments through `buildEvidenceLabViewData`, then renders a product-like dashboard for inspecting fixture truth, source assessments, source contents, bundle-level evidence, corroboration, conflicts, and unresolved weaknesses.
+
+Uploaded files are read locally in the browser and converted into synthetic source records with deterministic keyword heuristics. Uploads are not persisted and are not sent to an LLM.
 
 Supported query params:
 
@@ -184,13 +186,13 @@ Supported query params:
 Examples:
 
 ```txt
-/internal-data/evidence-lab?fixture=corroborated-acme-client-concern
-/internal-data/evidence-lab?fixture=corroborated-acme-client-concern&source=source-acme-proposal-decision-feedback
-/internal-data/evidence-lab?fixture=corroborated-acme-client-concern&hide=source-acme-meeting-notes-readiness
-/internal-data/evidence-lab?fixture=strong-current-account-note&now=2027-06-15T12:00
+/evidence-lab?fixture=corroborated-acme-client-concern
+/evidence-lab?fixture=corroborated-acme-client-concern&source=source-acme-proposal-decision-feedback
+/evidence-lab?fixture=corroborated-acme-client-concern&hide=source-acme-meeting-notes-readiness
+/evidence-lab?fixture=strong-current-account-note&now=2027-06-15T12:00
 ```
 
-The route does not use Convex and does not persist anything. It is a deterministic fixture browser for Week 1 prototyping.
+The route does not use Convex and does not persist anything. It is a deterministic fixture and upload browser for prototyping.
 
 ## Testing
 

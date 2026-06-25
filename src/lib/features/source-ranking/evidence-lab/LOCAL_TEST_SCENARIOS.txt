@@ -1,0 +1,32 @@
+Evidence Lab Local Scenarios
+============================
+
+These are local/manual scenarios for the public evidence lab UI. They replace the evidence-lab-specific test file so the prototype can be exercised manually in Vercel.
+
+Route
+-----
+/evidence-lab
+
+Manual checks
+-------------
+1. Open /evidence-lab without query params.
+   Expected: data-source catalog and upload panel are visible. No assessment dashboard is open yet.
+
+2. Open /evidence-lab?fixture=corroborated-acme-client-concern.
+   Expected: assessment dashboard opens for the fixture and shows corroborated claim kinds.
+
+3. Open /evidence-lab?fixture=conflict-acme-timeline-risk&source=source-acme-current-risk-cleared-note.
+   Expected: source reader opens with the current CRM note and shows a contradicting implementation-risk claim.
+
+4. Upload one or more .txt/.md/.json files.
+   Expected: uploaded sources are parsed locally in the browser, a custom bundle is assessed, and claims are inferred with deterministic keyword heuristics.
+
+5. Upload text containing words like implementation, timeline, pricing, stakeholder, renewal, decision, confidential, partner.
+   Expected: the uploaded source receives matching claim kinds and sensitivity values based on those keywords.
+
+Important notes
+---------------
+- Uploads are browser-local only.
+- Uploaded file contents are not persisted to Convex.
+- Uploaded file contents are not sent to an LLM.
+- The upload parser is deterministic and keyword-based, not semantic.
