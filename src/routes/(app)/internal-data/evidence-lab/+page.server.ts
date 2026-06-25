@@ -14,6 +14,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		},
 		evidenceLab: buildEvidenceLabViewData({
 			fixtureId: url.searchParams.get('fixture'),
+			sourceId: url.searchParams.get('source'),
 			now: url.searchParams.get('now'),
 			hiddenSourceIds: parseEvidenceLabHiddenSourceIds(url.searchParams)
 		})

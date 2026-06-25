@@ -14,6 +14,7 @@ export const DEFAULT_EVIDENCE_LAB_NOW_ISO = '2026-06-22T12:00:00.000Z';
 
 type EvidenceLabViewDataInput = {
 	fixtureId?: string | null;
+	sourceId?: string | null;
 	now?: string | number | null;
 	hiddenSourceIds?: readonly string[];
 	fixtures?: readonly EvidenceFixture[];
@@ -48,9 +49,12 @@ export type EvidenceLabViewData = {
 	now: number;
 	nowIso: string;
 	nowInputValue: string;
-	selectedFixtureId: string;
+	hasSelectedFixture: boolean;
+	selectedFixtureId: string | null;
+	selectedSourceId: string | null;
 	hiddenSourceIds: readonly string[];
 	ignoredHiddenSourceIds: readonly string[];
+	ignoredSourceId: string | null;
 	fixtures: readonly EvidenceLabFixtureSummary[];
 	coverage: EvidenceLabCoverageSummary;
 	selected: {
@@ -58,6 +62,7 @@ export type EvidenceLabViewData = {
 		activeBundle: EvidenceBundle;
 		assessment: EvidenceAssessment;
 		sourceRows: readonly EvidenceLabSourceRow[];
+		selectedSourceRow: EvidenceLabSourceRow | null;
 		visibleSourceIds: readonly string[];
 	};
 };
@@ -73,6 +78,7 @@ const TIER_ORDER: SourceTier[] = ['strong', 'medium', 'weak'];
 
 export function buildEvidenceLabViewData({
 	fixtureId,
+	sourceId,
 	now,
 	hiddenSourceIds = [],
 	fixtures = sourceRankingFixtures
@@ -81,8 +87,16 @@ export function buildEvidenceLabViewData({
 		throw new Error('Evidence lab requires at least one fixture.');
 	}
 
-	const selectedFixture = fixtures.find((fixture) => fixture.id === fixtureId) ?? fixtures[0];
+	const requestedFixtureId = fixtureId?.trim() || null;
+	const explicitFixture = fixtures.find((fixture) => fixture.id === requestedFixtureId) ?? null;
+	const hasSelectedFixture = explicitFixture !== null;
+	const selectedFixture = explicitFixture ?? fixtures[0];
 	const selectedSourceIds = new Set(selectedFixture.sources.map((source) => source.id));
+	const requestedSourceId = sourceId?.trim() || null;
+	const selectedSourceId = requestedSourceId && selectedSourceIds.has(requestedSourceId)
+		? requestedSourceId
+		: null;
+	const ignoredSourceId = requestedSourceId && !selectedSourceId ? requestedSourceId : null;
 	const normalizedHiddenSourceIds = [...new Set(hiddenSourceIds)].filter((sourceId) =>
 		selectedSourceIds.has(sourceId)
 	);
@@ -108,26 +122,34 @@ export function buildEvidenceLabViewData({
 		])
 	);
 
+	const sourceRows = selectedFixture.sources.map((source) => ({
+		source,
+		assessment: assessmentsBySourceId.get(source.id) ?? null,
+		expectedTier: selectedFixture.expected.sourceTiers[source.id] ?? 'weak',
+		isHidden: normalizedHiddenSourceIds.includes(source.id)
+	}));
+
 	return {
 		now: normalizedNow.now,
 		nowIso: normalizedNow.nowIso,
 		nowInputValue: normalizedNow.nowInputValue,
-		selectedFixtureId: selectedFixture.id,
+		hasSelectedFixture,
+		selectedFixtureId: hasSelectedFixture ? selectedFixture.id : null,
+		selectedSourceId,
 		hiddenSourceIds: normalizedHiddenSourceIds,
 		ignoredHiddenSourceIds,
-		fixtures: fixtures.map((fixture) => toFixtureSummary(fixture, selectedFixture.id)),
+		ignoredSourceId,
+		fixtures: fixtures.map((fixture) => toFixtureSummary(fixture, hasSelectedFixture ? selectedFixture.id : null)),
 		coverage: getCoverageSummary(fixtures),
 		selected: {
 			fixture: selectedFixture,
 			activeBundle,
 			assessment,
 			visibleSourceIds: activeSources.map((source) => source.id),
-			sourceRows: selectedFixture.sources.map((source) => ({
-				source,
-				assessment: assessmentsBySourceId.get(source.id) ?? null,
-				expectedTier: selectedFixture.expected.sourceTiers[source.id] ?? 'weak',
-				isHidden: normalizedHiddenSourceIds.includes(source.id)
-			}))
+			sourceRows,
+			selectedSourceRow: selectedSourceId
+				? sourceRows.find((row) => row.source.id === selectedSourceId) ?? null
+				: null
 		}
 	};
 }
@@ -175,7 +197,7 @@ function parseEvidenceLabNow(value: string | number | null | undefined) {
 
 function toFixtureSummary(
 	fixture: EvidenceFixture,
-	selectedFixtureId: string
+	selectedFixtureId: string | null
 ): EvidenceLabFixtureSummary {
 	return {
 		id: fixture.id,

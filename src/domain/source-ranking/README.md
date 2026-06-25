@@ -170,11 +170,14 @@ The hidden authenticated prototype route lives at:
 
 It is intentionally direct-URL only and is not linked from app navigation.
 
-The route server-loads fixture assessments through `buildEvidenceLabViewData`, then renders a product-like dashboard for inspecting fixture truth, source assessments, bundle-level evidence, corroboration, conflicts, and unresolved weaknesses.
+The route starts as a data-source catalog. Selecting a fixture opens the dashboard for that fixture. From the dashboard, individual source records can be opened in a reader panel.
+
+The route server-loads fixture assessments through `buildEvidenceLabViewData`, then renders a product-like dashboard for inspecting fixture truth, source assessments, source contents, bundle-level evidence, corroboration, conflicts, and unresolved weaknesses.
 
 Supported query params:
 
 - `fixture`: selected fixture id.
+- `source`: selected source id to open in the source reader.
 - `now`: assessment timestamp. ISO strings and `datetime-local` values are supported.
 - `hide`: source ids to hide before assessment. May be repeated or comma-separated.
 
@@ -182,6 +185,7 @@ Examples:
 
 ```txt
 /internal-data/evidence-lab?fixture=corroborated-acme-client-concern
+/internal-data/evidence-lab?fixture=corroborated-acme-client-concern&source=source-acme-proposal-decision-feedback
 /internal-data/evidence-lab?fixture=corroborated-acme-client-concern&hide=source-acme-meeting-notes-readiness
 /internal-data/evidence-lab?fixture=strong-current-account-note&now=2027-06-15T12:00
 ```
