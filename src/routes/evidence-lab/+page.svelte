@@ -209,7 +209,7 @@
 	<title>Evidence Lab</title>
 </svelte:head>
 
-<main class="min-h-dvh bg-stone-50 px-4 py-5 md:px-6 md:py-6">
+<main class="h-dvh overflow-y-auto bg-stone-50 px-4 py-5 md:px-6 md:py-6">
 	<div class="mx-auto flex max-w-7xl flex-col gap-4 pb-12">
 		<section class="overflow-hidden rounded-sm border border-stone-200/70 bg-white shadow-sm">
 			<div class="grid gap-0 lg:grid-cols-[minmax(0,1.25fr)_minmax(22rem,0.75fr)]">
