@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-	buildContextSourceFromExtractedEvidence,
-	normalizeExtractedEvidence
-} from './normalize-extraction';
+import { assessEvidenceBundle } from '$domain/source-ranking';
+import { buildContextSourceFromExtractedEvidence, normalizeExtractedEvidence } from './normalize-extraction';
 import type { ExtractedEvidence } from './types';
 
 describe('evidence extraction normalization', () => {
@@ -121,6 +119,7 @@ describe('evidence extraction normalization', () => {
 
 		expect(source.extractionKind).toBe('ai');
 		expect(source.kind).toBe('email');
+		expect(source.client?.id).toBe('client-uploaded');
 		expect(source.cautions).toEqual([
 			'Do not state pricing is the main blocker unless Finance confirms.'
 		]);
@@ -132,5 +131,63 @@ describe('evidence extraction normalization', () => {
 		expect(source.claims.find((claim) => claim.kind === 'implementationRisk')?.support).toBe('direct');
 		expect(source.claims.find((claim) => claim.kind === 'pricingContext')?.requiresValidation).toBe(true);
 		expect(source.claims.some((claim) => claim.stance === 'contradicts')).toBe(true);
+	});
+
+	it('falls back to the email sender as an owner signal and avoids weak directness', () => {
+		const source = buildContextSourceFromExtractedEvidence({
+			id: 'uploaded-1-northstar-renewal-thread',
+			fileName: 'northstar-renewal-thread.eml',
+			text: 'From: Priya Shah <priya.shah@example.com>\nSubject: Northstar renewal\n\nImplementation timeline is current. Pricing is stale.',
+			lastModified: Date.parse('2026-06-20T12:00:00Z'),
+			extracted: {
+				claims: [
+					{
+						kind: 'implementationRisk',
+						text: 'Implementation timeline is the current active concern.',
+						support: 'direct',
+						stance: 'supports',
+						sensitivity: 'low',
+						requiresValidation: false,
+						reason: 'The source says implementation timeline is current.'
+					}
+				],
+				ownerSignals: [
+					{
+						kind: 'unknown',
+						name: 'Finance Ops',
+						email: null,
+						role: null,
+						organization: null,
+						confidence: 0.8,
+						reason: 'Finance Ops can validate pricing, but not implementation timeline.'
+					}
+				],
+				cautions: [],
+				missingContext: [],
+				suggestedContextNeedKinds: ['implementationRisk']
+			}
+		});
+		const assessment = assessEvidenceBundle({
+			bundle: {
+				id: 'uploaded-bundle',
+				title: 'Uploaded bundle',
+				contextNeed: {
+					id: 'need-uploaded-context-review',
+					kind: 'other',
+					label: 'Uploaded review',
+					description: 'Evaluate uploaded evidence.',
+					client: { id: 'client-uploaded', name: 'Uploaded data' },
+					requiredClaimKinds: ['implementationRisk'],
+					sensitivity: 'low'
+				},
+				sources: [source]
+			},
+			now: Date.parse('2026-06-22T12:00:00Z')
+		});
+
+		expect(source.ownerSignals.some((ownerSignal) => ownerSignal.owner?.name === 'Priya Shah')).toBe(true);
+		expect(assessment.likelyOwnerSignals.map((ownerSignal) => ownerSignal.owner?.name)).toContain('Priya Shah');
+		expect(assessment.sourceAssessments[0]?.scores.confidence.directness).toBeGreaterThanOrEqual(0.8);
+		expect(assessment.strongestTier).not.toBe('weak');
 	});
 });

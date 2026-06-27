@@ -31,6 +31,9 @@ clientConcern, decisionFeedback, implementationRisk, renewalRisk, pricingContext
 Use these owner kinds only:
 accountOwner, opportunityOwner, proposalOwner, documentAuthor, meetingAttendee, sourceUploader, unknown.
 
+For email-like sources, extract the From sender as an owner signal. Use documentAuthor unless the text clearly identifies that person as an accountOwner, opportunityOwner, or proposalOwner.
+For teams or functions like Finance Ops, Procurement, Legal, or Account Owner without a named person, include an owner signal with kind unknown and the team/function name.
+
 If a source says a claim is old, stale, uncertain, or needs validation, mark support as weak or inferred and requiresValidation as true.
 If a source says not to state a claim as true, use stance "contradicts" for that claim.
 If a claim is current and directly stated, use support "direct".

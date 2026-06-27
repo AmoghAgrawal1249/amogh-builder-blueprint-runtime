@@ -1,6 +1,7 @@
 import type {
 	ContextNeedKind,
 	ContextSource,
+	EvidenceEntityRef,
 	EvidenceOwner,
 	OwnerSignal,
 	OwnerSignalKind,
@@ -61,14 +62,19 @@ const AI_OWNER_FALLBACK: EvidenceOwner = {
 	role: 'Extracted owner signal'
 };
 
+const UPLOADED_CLIENT: EvidenceEntityRef = {
+	id: 'client-uploaded',
+	name: 'Uploaded data'
+};
+
 export function normalizeExtractedEvidence(extracted: unknown): ExtractedEvidence {
 	const record = isRecord(extracted) ? extracted : {};
 
 	return {
 		claims: normalizeExtractedClaims(record.claims),
 		ownerSignals: normalizeExtractedOwnerSignals(record.ownerSignals),
-		cautions: normalizeStringArray(record.cautions),
-		missingContext: normalizeStringArray(record.missingContext),
+		cautions: normalizeStringArray(record.cautions, 6),
+		missingContext: normalizeStringArray(record.missingContext, 4),
 		suggestedContextNeedKinds: normalizeSuggestedContextNeedKinds(record.suggestedContextNeedKinds)
 	};
 }
@@ -91,9 +97,14 @@ export function buildContextSourceFromExtractedEvidence({
 		requiresValidation: claim.requiresValidation,
 		reason: claim.reason
 	})) satisfies SourceClaim[];
-	const ownerSignals = normalizedExtracted.ownerSignals.map((ownerSignal, index) =>
+	const extractedOwnerSignals = normalizedExtracted.ownerSignals.map((ownerSignal, index) =>
 		toOwnerSignal(ownerSignal, id, index)
 	);
+	const fallbackOwnerSignal = getFallbackOwnerSignal({ id, fileName, text });
+	const ownerSignals = hasUsableOwnerSignal(extractedOwnerSignals)
+		? extractedOwnerSignals
+		: [...extractedOwnerSignals, fallbackOwnerSignal];
+	const createdBy = ownerSignals.find((ownerSignal) => ownerSignal.owner)?.owner ?? AI_OWNER_FALLBACK;
 
 	return {
 		id,
@@ -106,18 +117,9 @@ export function buildContextSourceFromExtractedEvidence({
 		missingContext: normalizedExtracted.missingContext,
 		createdAt: lastModified,
 		updatedAt: lastModified,
-		createdBy: ownerSignals[0]?.owner ?? AI_OWNER_FALLBACK,
-		ownerSignals:
-			ownerSignals.length > 0
-				? ownerSignals
-				: [
-						{
-							kind: 'sourceUploader',
-							confidence: 0.45,
-							reason: 'AI extraction did not identify a stronger owner signal.',
-							owner: AI_OWNER_FALLBACK
-						}
-					],
+		client: UPLOADED_CLIENT,
+		createdBy,
+		ownerSignals,
 		claims: claims.length > 0 ? claims : [toFallbackClaim(id, text)],
 		sensitivity: getMaxSensitivity([
 			...claims.map((claim) => claim.sensitivity),
@@ -200,12 +202,12 @@ function normalizeSuggestedContextNeedKinds(value: unknown): ContextNeedKind[] {
 		.filter((kind): kind is ContextNeedKind => kind !== null);
 }
 
-function normalizeStringArray(value: unknown) {
+function normalizeStringArray(value: unknown, maxItems: number) {
 	if (!Array.isArray(value)) {
 		return [];
 	}
 
-	return value.map(normalizeText).filter(Boolean).slice(0, 12);
+	return value.map(normalizeText).filter(Boolean).slice(0, maxItems);
 }
 
 function toOwnerSignal(
@@ -229,6 +231,64 @@ function toOwnerSignal(
 		reason: ownerSignal.reason,
 		...(owner ? { owner } : {})
 	};
+}
+
+function hasUsableOwnerSignal(ownerSignals: readonly OwnerSignal[]) {
+	return ownerSignals.some((ownerSignal) => ownerSignal.kind !== 'unknown' && ownerSignal.owner);
+}
+
+function getFallbackOwnerSignal({
+	id,
+	fileName,
+	text
+}: {
+	id: string;
+	fileName: string;
+	text: string;
+}): OwnerSignal {
+	const emailSender = getEmailSenderOwner(text);
+
+	if (emailSender) {
+		return {
+			kind: 'documentAuthor',
+			confidence: 0.72,
+			reason: 'Parsed the email sender from the From header as the likely source author.',
+			owner: {
+				id: `owner-${id}-email-sender-${slugify(emailSender.name)}`,
+				name: emailSender.name,
+				...(emailSender.email ? { email: emailSender.email } : {}),
+				role: 'Email sender'
+			}
+		};
+	}
+
+	return {
+		kind: 'sourceUploader',
+		confidence: 0.45,
+		reason: `AI extraction did not identify a stronger owner signal for ${fileName}.`,
+		owner: AI_OWNER_FALLBACK
+	};
+}
+
+function getEmailSenderOwner(text: string) {
+	const fromLine = text
+		.split(/\r?\n/)
+		.find((line) => /^from:/i.test(line))
+		?.replace(/^from:\s*/i, '')
+		.trim();
+
+	if (!fromLine) {
+		return null;
+	}
+
+	const email = /<([^>]+)>/.exec(fromLine)?.[1] ?? /\b[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+\b/.exec(fromLine)?.[0] ?? null;
+	const name = fromLine
+		.replace(/<[^>]+>/g, '')
+		.replace(email ?? '', '')
+		.replace(/"/g, '')
+		.trim() || email || 'Email sender';
+
+	return { name, email };
 }
 
 function toFallbackClaim(sourceId: string, text: string): SourceClaim {
