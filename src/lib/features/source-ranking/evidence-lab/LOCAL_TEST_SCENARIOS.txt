@@ -28,7 +28,7 @@ Manual checks
    Expected: the source mode changes from Keyword parsed to AI extracted, source claims are replaced by OpenAI's structured extraction, and the deterministic scoring reruns on the normalized output.
 
 7. Upload northstar-renewal-thread.eml from static/evidence-lab-samples and wait for AI extraction.
-   Expected: pricing context is treated as stale/validation-needed, implementation timeline is treated as current context, and cautions mention not using pricing as the main blocker without Finance confirmation.
+   Expected: pricing context is treated as stale/validation-needed, implementation timeline is treated as current context, cautions mention not using pricing as the main blocker without Finance confirmation, and missing context stays focused to a few blocking validation questions.
 
 Important notes
 ---------------

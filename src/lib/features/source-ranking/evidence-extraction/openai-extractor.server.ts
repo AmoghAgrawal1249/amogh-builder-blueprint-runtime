@@ -23,7 +23,7 @@ Return only structured evidence. Capture:
 - contradictions where a source argues against a claim
 - sensitive/confidential/partner-channel risk
 - likely human owners or validators
-- missing context that should be requested
+- only the smallest missing context that blocks safe automation
 
 Use these claim kinds only:
 clientConcern, decisionFeedback, implementationRisk, renewalRisk, pricingContext, timelineContext, stakeholderContext, nextStep, other.
@@ -34,7 +34,18 @@ accountOwner, opportunityOwner, proposalOwner, documentAuthor, meetingAttendee, 
 If a source says a claim is old, stale, uncertain, or needs validation, mark support as weak or inferred and requiresValidation as true.
 If a source says not to state a claim as true, use stance "contradicts" for that claim.
 If a claim is current and directly stated, use support "direct".
-If partner-channel, confidential, legal, restricted, pricing, discount, or procurement material appears, reflect sensitivity appropriately.`;
+If partner-channel, confidential, legal, restricted, pricing, discount, or procurement material appears, reflect sensitivity appropriately.
+
+Keep missingContext focused and minimal:
+- Include only blocking questions needed before safe automation.
+- Do not include nice-to-have details, full source-document requests, generic contact details, or broad research tasks.
+- Prefer the smallest validation question, such as "Finance Ops confirmation that old discount context is still current".
+- Do not duplicate cautions in missingContext unless a specific confirmation is needed.
+- Limit missingContext to at most 4 items, ordered by importance.
+
+Keep cautions focused and non-duplicative:
+- Include concise warnings about unsafe wording, stale context, sensitivity, or validation requirements.
+- Limit cautions to at most 6 items, ordered by automation risk.`;
 
 const EXTRACTED_EVIDENCE_JSON_SCHEMA = {
 	type: 'object',
@@ -101,8 +112,8 @@ const EXTRACTED_EVIDENCE_JSON_SCHEMA = {
 				}
 			}
 		},
-		cautions: { type: 'array', maxItems: 12, items: { type: 'string' } },
-		missingContext: { type: 'array', maxItems: 12, items: { type: 'string' } },
+		cautions: { type: 'array', maxItems: 6, items: { type: 'string' } },
+		missingContext: { type: 'array', maxItems: 4, items: { type: 'string' } },
 		suggestedContextNeedKinds: {
 			type: 'array',
 			maxItems: 8,
