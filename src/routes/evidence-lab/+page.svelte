@@ -9,8 +9,10 @@
 		buildUploadedEvidenceBundle,
 		parseEvidenceLabHiddenSourceIds,
 		toUploadedEvidenceFile,
+		withAiExtractedEvidence,
 		type UploadedEvidenceFile
 	} from '$lib/features/source-ranking/evidence-lab';
+	import type { ExtractedEvidence } from '$lib/features/source-ranking/evidence-extraction';
 
 	type SourceRow = {
 		source: ContextSource;
@@ -24,6 +26,8 @@
 	let selectedUploadedSourceId = $state<string | null>(null);
 	let uploadError = $state<string | null>(null);
 	let isReadingFiles = $state(false);
+	let aiExtractionError = $state<string | null>(null);
+	let isExtractingWithAi = $state(false);
 
 	const lab = $derived(
 		buildEvidenceLabViewData({
@@ -74,9 +78,14 @@
 	const activeRows = $derived<readonly SourceRow[]>(activeMode === 'upload' ? uploadedRows : lab.selected.sourceRows);
 	const activeSelectedRow = $derived(activeMode === 'upload' ? selectedUploadedRow : lab.selected.selectedSourceRow);
 	const activeTitle = $derived(activeMode === 'upload' ? 'Uploaded data sources' : lab.selected.fixture.title);
+	const uploadedExtractionKind = $derived(
+		uploadedFiles.length > 0 && uploadedFiles.every((file) => file.extractionKind === 'ai')
+			? 'AI extracted'
+			: 'Keyword parsed'
+	);
 	const activeDescription = $derived(
 		activeMode === 'upload'
-			? 'Browser-local evidence bundle created from uploaded files. Nothing is persisted.'
+			? `${uploadedExtractionKind} evidence bundle created from uploaded files. Nothing is persisted.`
 			: lab.selected.fixture.description
 	);
 
@@ -169,9 +178,10 @@
 
 		isReadingFiles = true;
 		uploadError = null;
+		aiExtractionError = null;
 
 		try {
-			uploadedFiles = await Promise.all(
+			const nextUploadedFiles = await Promise.all(
 				files.map(async (file, index) =>
 					toUploadedEvidenceFile({
 						name: file.name,
@@ -181,8 +191,12 @@
 					})
 				)
 			);
+
+			uploadedFiles = nextUploadedFiles;
 			uploadedHiddenSourceIds = [];
-			selectedUploadedSourceId = uploadedFiles[0]?.id ?? null;
+			selectedUploadedSourceId = nextUploadedFiles[0]?.id ?? null;
+			isReadingFiles = false;
+			await extractUploadedFilesWithAi(nextUploadedFiles);
 		} catch (error) {
 			uploadError = error instanceof Error ? error.message : 'Could not read uploaded files.';
 		} finally {
@@ -196,12 +210,52 @@
 		uploadedHiddenSourceIds = [];
 		selectedUploadedSourceId = null;
 		uploadError = null;
+		aiExtractionError = null;
 	}
 
 	function toggleUploadedHiddenSource(sourceId: string) {
 		uploadedHiddenSourceIds = uploadedHiddenSourceIds.includes(sourceId)
 			? uploadedHiddenSourceIds.filter((id) => id !== sourceId)
 			: [...uploadedHiddenSourceIds, sourceId];
+	}
+
+	async function extractUploadedFilesWithAi(filesToExtract = uploadedFiles) {
+		if (filesToExtract.length === 0 || isExtractingWithAi) {
+			return;
+		}
+
+		isExtractingWithAi = true;
+		aiExtractionError = null;
+
+		try {
+			const extractedResults = await Promise.all(
+				filesToExtract.map(async (file) => {
+					const response = await fetch('/evidence-lab/extract', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ fileName: file.name, text: file.text })
+					});
+					const result = (await response.json()) as
+						| { ok: true; extracted: ExtractedEvidence }
+						| { ok: false; error?: string };
+
+					if (!response.ok || !result.ok) {
+						throw new Error(!result.ok && result.error ? result.error : 'AI extraction failed.');
+					}
+
+					return result.extracted;
+				})
+			);
+
+			uploadedFiles = filesToExtract.map((file, index) =>
+				withAiExtractedEvidence(file, extractedResults[index])
+			);
+			selectedUploadedSourceId = uploadedFiles[0]?.id ?? null;
+		} catch (error) {
+			aiExtractionError = error instanceof Error ? error.message : 'AI extraction failed.';
+		} finally {
+			isExtractingWithAi = false;
+		}
 	}
 </script>
 
@@ -221,14 +275,14 @@
 						Evidence lab
 					</h1>
 					<p class="mt-3 max-w-2xl text-sm leading-6 text-stone-600">
-						Upload local text data sources or open a synthetic example. The ranking is deterministic, browser-local for uploads, and not LLM-based.
+						Upload local text data sources or open a synthetic example. Keyword parsing runs locally first, then GPT-5.5 extraction starts automatically.
 					</p>
 					<div class="mt-5 flex flex-wrap gap-2">
 						<span class="rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs text-stone-600">
 							No persistence
 						</span>
 						<span class="rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs text-stone-600">
-							Keyword-based upload parsing
+							GPT-5.5 low reasoning
 						</span>
 						<span class="rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs text-stone-600">
 							{lab.coverage.totalFixtures} examples
@@ -239,7 +293,7 @@
 				<div class="border-t border-stone-200/70 bg-stone-50 p-5 md:p-7 lg:border-t-0 lg:border-l">
 					<p class="text-sm font-semibold text-stone-950">Upload your data sources</p>
 					<p class="mt-2 text-xs leading-5 text-stone-500">
-						Use `.txt`, `.md`, `.json`, or `.eml` files. Files are read in your browser and converted into synthetic source records.
+						Use `.txt`, `.md`, `.json`, or `.eml` files. Files are read in your browser, keyword parsed immediately, then AI extracted by default.
 					</p>
 					<label class="mt-4 flex cursor-pointer items-center justify-center rounded-sm border border-dashed border-stone-300 bg-white px-4 py-6 text-center text-sm font-medium text-stone-700 transition-colors hover:bg-stone-50">
 						<input
@@ -257,11 +311,24 @@
 						</p>
 					{/if}
 					{#if uploadedFiles.length > 0}
-						<div class="mt-3 flex items-center justify-between gap-3 rounded-sm border border-stone-200 bg-white px-3 py-2">
-							<p class="text-xs text-stone-600">{uploadedFiles.length} uploaded source{uploadedFiles.length === 1 ? '' : 's'} active</p>
-							<button type="button" class="text-xs font-medium text-stone-900 underline underline-offset-2" onclick={clearUploadedFiles}>
-								Clear
-							</button>
+						<div class="mt-3 rounded-sm border border-stone-200 bg-white p-3">
+							<div class="flex items-center justify-between gap-3">
+								<div>
+									<p class="text-xs font-medium text-stone-900">{uploadedFiles.length} uploaded source{uploadedFiles.length === 1 ? '' : 's'} active</p>
+									<p class="mt-1 text-[0.68rem] text-stone-500">Mode: {uploadedExtractionKind}</p>
+									{#if isExtractingWithAi}
+										<p class="mt-1 text-[0.68rem] text-blue-700">Extracting with GPT-5.5...</p>
+									{/if}
+								</div>
+								<button type="button" class="text-xs font-medium text-stone-900 underline underline-offset-2" onclick={clearUploadedFiles}>
+									Clear
+								</button>
+							</div>
+							{#if aiExtractionError}
+								<p class="mt-2 rounded-sm border border-red-100 bg-red-50 px-2 py-1.5 text-xs text-red-700">
+									{aiExtractionError}
+								</p>
+							{/if}
 						</div>
 					{/if}
 				</div>
@@ -361,7 +428,11 @@
 								<h2 class="mt-2 text-xl font-semibold tracking-[-0.02em] text-stone-950">{activeTitle}</h2>
 								<p class="mt-2 max-w-3xl text-sm leading-6 text-stone-600">{activeDescription}</p>
 							</div>
-							{#if activeMode === 'fixture'}
+							{#if activeMode === 'upload'}
+								<span class="w-fit rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-medium text-stone-700">
+									{uploadedExtractionKind}
+								</span>
+							{:else if activeMode === 'fixture'}
 								<span class={`w-fit rounded-full border px-3 py-1 text-xs font-medium ${decisionClass(lab.selected.fixture.expected.automationDecision)}`}>
 									Truth: {formatLabel(lab.selected.fixture.expected.automationDecision)}
 								</span>
@@ -403,11 +474,22 @@
 							{#if activeSelectedRow}
 								<div class="mt-4 rounded-sm border border-stone-200 bg-stone-50 p-4">
 									<div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-										<div>
-											<p class="text-base font-semibold text-stone-950">{activeSelectedRow.source.title}</p>
-											<p class="mt-2 text-sm leading-6 text-stone-600">{activeSelectedRow.source.summary}</p>
-										</div>
+									<div>
+										<p class="text-base font-semibold text-stone-950">{activeSelectedRow.source.title}</p>
+										<p class="mt-2 text-sm leading-6 text-stone-600">{activeSelectedRow.source.summary}</p>
+										{#if activeSelectedRow.source.fullText}
+											<details class="mt-3 rounded-sm border border-stone-200 bg-white p-3">
+												<summary class="cursor-pointer text-xs font-medium text-stone-900">Read full uploaded text</summary>
+												<pre class="mt-3 max-h-72 overflow-auto whitespace-pre-wrap text-xs leading-5 text-stone-600">{activeSelectedRow.source.fullText}</pre>
+											</details>
+										{/if}
+									</div>
+									<div class="flex flex-col items-start gap-2 md:items-end">
 										<span class="w-fit rounded-full border border-stone-200 bg-white px-2 py-1 text-[0.68rem] text-stone-500">{activeSelectedRow.source.kind}</span>
+										{#if activeSelectedRow.source.extractionKind}
+											<span class="w-fit rounded-full border border-stone-200 bg-white px-2 py-1 text-[0.68rem] text-stone-500">{formatLabel(activeSelectedRow.source.extractionKind)}</span>
+										{/if}
+									</div>
 									</div>
 
 									<div class="mt-4 grid gap-3 md:grid-cols-2">
@@ -429,8 +511,14 @@
 															{#if claim.stance}
 																<span class="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[0.65rem] text-red-700">{claim.stance}</span>
 															{/if}
+															{#if claim.requiresValidation}
+																<span class="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[0.65rem] text-amber-700">Needs validation</span>
+															{/if}
 														</div>
 														<p class="mt-2 text-xs leading-5 text-stone-700">{claim.text}</p>
+														{#if claim.reason}
+															<p class="mt-2 text-[0.68rem] leading-5 text-stone-500">{claim.reason}</p>
+														{/if}
 													</div>
 												{/each}
 											</div>
@@ -449,6 +537,31 @@
 											</div>
 										</div>
 									</div>
+
+									{#if activeSelectedRow.source.cautions?.length || activeSelectedRow.source.missingContext?.length}
+										<div class="mt-4 grid gap-3 xl:grid-cols-2">
+											{#if activeSelectedRow.source.cautions?.length}
+												<div class="rounded-sm border border-amber-100 bg-amber-50 p-3">
+													<p class="text-[0.72rem] font-medium text-amber-900">AI cautions</p>
+													<ul class="mt-2 list-disc pl-4 text-xs leading-5 text-amber-800">
+														{#each activeSelectedRow.source.cautions as caution (caution)}
+															<li>{caution}</li>
+														{/each}
+													</ul>
+												</div>
+											{/if}
+											{#if activeSelectedRow.source.missingContext?.length}
+												<div class="rounded-sm border border-blue-100 bg-blue-50 p-3">
+													<p class="text-[0.72rem] font-medium text-blue-900">Missing context</p>
+													<ul class="mt-2 list-disc pl-4 text-xs leading-5 text-blue-800">
+														{#each activeSelectedRow.source.missingContext as missingContext (missingContext)}
+															<li>{missingContext}</li>
+														{/each}
+													</ul>
+												</div>
+											{/if}
+										</div>
+									{/if}
 								</div>
 							{:else}
 								<div class="mt-4 rounded-sm border border-dashed border-stone-200 bg-stone-50 p-6 text-center">

@@ -23,6 +23,7 @@ The first version uses synthetic but realistic fixtures instead of real CRM, cal
 - Keep UI prototype code under feature folders and routes, not inside the domain engine.
 - Let Convex persistence come later unless a flow truly needs saved state.
 - Do not wire real outbound emails, real inbox polling, or real third-party integrations in this prototype phase.
+- If LLMs are introduced, use them for evidence extraction from messy text, not final ranking or automation decisions.
 - Treat agentic Week 3 workflows as optional planning/simulation layers around the deterministic Week 1 and Week 2 engine.
 
 ## Week 1: Ranking Core
@@ -159,13 +160,191 @@ A fixture-backed ranking prototype that can:
 - Keep persistence out of scope.
 - End-of-day output: a user can inspect fixture source rankings without reading code.
 
-#### Day 5: Tuning + Verification Buffer
+#### Day 5: AI Evidence Extraction Layer
 
-- Tune thresholds using the fixture set.
-- Add missing fixture cases for stale, sensitive, vague, and ownerless sources.
-- Check that explanations match the mental model from the PDF.
-- Run `npm run lint`, `npm run check`, and `npm run build`.
-- End-of-day output: Week 1 ranking prototype is stable enough for Week 2 decisioning.
+- Add a default AI extraction layer for uploaded or pasted source text.
+- Keep the deterministic source-ranking and evidence-bundle assessment as the final scoring authority.
+- Use the AI layer to convert messy text into structured evidence: claims, cautions, contradictions, owner signals, sensitivity hints, and missing-context notes.
+- Require structured JSON output and validate it before converting it into `ContextSource` records.
+- Run keyword parsing immediately, then start AI extraction by default for uploaded files.
+- Show extraction provenance clearly in the UI, such as `Keyword parsed`, `Extracting with GPT-5.5`, or `AI extracted`.
+- Keep a deterministic fallback parser for local/offline use and for tests.
+- Run `npm test`, `npm run lint`, `npm run check`, and `npm run build`.
+- End-of-day output: the prototype can use an optional LLM-assisted extractor for messy emails/docs while deterministic policy remains in control.
+
+### Week 1 Day 5 Detailed Scope
+
+Day 5 should solve the limitation exposed by realistic email uploads: deterministic keyword parsing misses negation, uncertainty, stale-context warnings, and validation instructions.
+
+The intended architecture is:
+
+```txt
+uploaded source text
+-> immediate keyword fallback
+-> default AI extraction
+-> validated structured evidence
+-> existing deterministic scoring/ranking
+-> evidence lab display
+```
+
+The AI should not produce the final source tier or automation decision. It should produce structured evidence fields that the existing deterministic engine can score.
+
+#### AI Extraction Output Shape
+
+Target structured output:
+
+```ts
+type ExtractedEvidence = {
+	claims: Array<{
+		kind: SourceClaimKind;
+		text: string;
+		support: 'direct' | 'inferred' | 'weak';
+		stance?: 'supports' | 'contradicts';
+		sensitivity: 'low' | 'medium' | 'high';
+		requiresValidation: boolean;
+		reason: string;
+	}>;
+	ownerSignals: Array<{
+		kind: OwnerSignalKind;
+		name?: string;
+		email?: string;
+		confidence: number;
+		reason: string;
+	}>;
+	cautions: string[];
+	missingContext: string[];
+	suggestedContextNeedKinds: ContextNeedKind[];
+};
+```
+
+Examples of language the AI extractor should catch:
+
+- `do not state pricing is the main blocker unless Finance confirms`
+- `old proposal says pricing, but not sure this is still active`
+- `implementation timeline was raised twice in recent emails`
+- `partner-channel notes may be confidential`
+- `ask account owner to validate procurement involvement`
+
+#### Day 5 Implementation Tasks
+
+1. Add an extraction boundary module, likely under `src/lib/features/source-ranking/evidence-extraction/`.
+2. Define `ExtractedEvidence` and normalization functions that map extracted evidence into `ContextSource`.
+3. Add an OpenAI-backed implementation only if the required API key/config is available.
+4. Add a no-network deterministic fallback implementation for local/test environments.
+5. Update `/evidence-lab` upload flow so AI extraction starts by default after upload.
+6. Let users inspect the AI-extracted claims before or alongside scoring output.
+7. Add tests for normalization, validation, fallback extraction, and tricky negation/caution cases.
+8. Document that uploaded source text is sent to OpenAI by default after upload, while keyword parsing remains the fallback if extraction fails.
+
+#### Day 5 Acceptance Criteria
+
+- Uploaded files are keyword parsed locally first, then sent to OpenAI by default for extraction.
+- The AI extractor cannot directly set source tier, bundle tier, or automation decision.
+- Extracted evidence is validated and normalized before entering the ranking engine.
+- The deterministic ranking engine can score both keyword-parsed and AI-extracted sources.
+- The evidence lab clearly labels extraction provenance and extraction-in-progress state.
+- Tests cover at least one email where current pricing context is uncertain/stale and implementation timeline is current.
+
+### Week 1 Day 5 End / Day 6 Add-On: Evidence Dashboard Polish
+
+This add-on should make the evidence lab feel closer to the rest of the format-builder product experience. It is not a new ranking policy step. It is a usability and presentation pass around the extraction/scoring work.
+
+#### Goal
+
+Give users a clean evidence dashboard where they can choose how deep they want to go:
+
+- Quick overview when they only want the verdict.
+- Source reader when they want to inspect the underlying source text.
+- Detailed analysis when they want to see scores, explanations, weaknesses, corroboration, and conflicts.
+
+#### Dashboard Information Architecture
+
+Structure the evidence lab into three progressive levels:
+
+1. Source selection and upload
+2. Evidence summary dashboard
+3. Expandable source reader and detailed analysis
+
+The default view should avoid overwhelming the user. Detailed score tables and long explanations should be hidden behind explicit controls like `View detailed analysis`, `Read source`, or section expanders.
+
+#### Source Reader Requirements
+
+Users should be able to read the actual source when they want to.
+
+For fixture sources:
+
+- Show the source title, kind, owner signal, created/updated date, client, and opportunity.
+- Show the human-readable summary.
+- Show claims extracted from the source.
+- If fixture text is available later, show the full fixture body, not just the summary.
+
+For uploaded sources:
+
+- Preserve and display the uploaded text locally in the browser.
+- Do not persist uploaded source text.
+- Uploaded source text can be sent to OpenAI automatically after upload for the public prototype.
+- Show whether the source was keyword-parsed or AI-extracted.
+
+#### Detailed Analysis Requirements
+
+The detailed analysis view should be optional and clearly separate from the main dashboard.
+
+It should include:
+
+- Per-source confidence and risk.
+- Per-dimension score explanations.
+- Source weaknesses.
+- Matched claims.
+- Corroborated claim kinds.
+- Conflicting claim kinds.
+- Likely owners and owner confidence.
+- Local truth metadata for fixture examples.
+
+This can use accordions, tabs, or a side panel. The key product rule is that the normal dashboard should stay readable without showing every scoring detail at once.
+
+#### Visual Direction
+
+Match the existing format-builder visual language:
+
+- Use rounded cards, thin stone borders, soft stone backgrounds, compact pills, and small typographic labels.
+- Keep the layout closer to `create-formats` and email-format configuration than a raw debug page.
+- Prefer clear grouped panels over dense tables.
+- Use status bars or compact cards for readiness/risk, similar to email-format activation UI.
+- Make mobile usable by stacking source selection, summary, reader, and details vertically.
+
+#### Suggested UI Layout
+
+Top section:
+
+- Evidence title and brief context.
+- Upload/select source controls.
+- Extraction mode label: `Keyword parsed`, `AI extracted`, or `Fixture truth`.
+
+Summary cards:
+
+- Overall confidence.
+- Overall risk.
+- Strongest tier.
+- Recommended next evidence action later in Week 2.
+
+Main workspace:
+
+- Left: source list with kind, owner, tier, hidden state.
+- Center: selected source reader.
+- Right or below: compact evidence summary.
+
+Details area:
+
+- Collapsible detailed analysis with score explanations and weaknesses.
+
+#### Day 6 Acceptance Criteria
+
+- A user can upload or select a source and understand the high-level result without reading scoring internals.
+- A user can click `Read source` and inspect the actual source content or fixture source summary.
+- A user can click `View detailed analysis` and see the full score/explanation view that existed in the earlier prototype.
+- The UI clearly labels deterministic keyword extraction vs default AI extraction.
+- The page visually matches the existing format-builder product style better than a debug dashboard.
+- `npm test`, `npm run lint`, `npm run check`, and `npm run build` pass.
 
 ### Week 1 Acceptance Criteria
 

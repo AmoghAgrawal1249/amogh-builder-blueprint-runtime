@@ -3,17 +3,22 @@ import type {
 	EvidenceBundle,
 	EvidenceEntityRef,
 	EvidenceOwner,
+	ContextNeedKind,
 	SourceClaim,
 	SourceClaimKind,
 	SourceClaimSupport,
 	SourceSensitivityLevel
 } from '$domain/source-ranking';
+import { buildContextSourceFromExtractedEvidence } from '$lib/features/source-ranking/evidence-extraction';
+import type { ExtractedEvidence } from '$lib/features/source-ranking/evidence-extraction';
 
 export type UploadedEvidenceFile = {
 	id: string;
 	name: string;
 	text: string;
 	lastModified: number;
+	extractionKind: 'keyword' | 'ai';
+	extractedEvidence?: ExtractedEvidence;
 };
 
 type ClaimRule = {
@@ -102,11 +107,33 @@ export function toUploadedEvidenceFile({
 		id: `uploaded-${index + 1}-${slugify(name)}`,
 		name,
 		text,
-		lastModified
+		lastModified,
+		extractionKind: 'keyword'
+	};
+}
+
+export function withAiExtractedEvidence(
+	file: UploadedEvidenceFile,
+	extractedEvidence: ExtractedEvidence
+): UploadedEvidenceFile {
+	return {
+		...file,
+		extractionKind: 'ai',
+		extractedEvidence
 	};
 }
 
 function toUploadedContextSource(file: UploadedEvidenceFile): ContextSource {
+	if (file.extractionKind === 'ai' && file.extractedEvidence) {
+		return buildContextSourceFromExtractedEvidence({
+			id: file.id,
+			fileName: file.name,
+			text: file.text,
+			lastModified: file.lastModified,
+			extracted: file.extractedEvidence
+		});
+	}
+
 	const sensitivity = inferSensitivity(file.text);
 	const claims = inferClaims(file);
 
@@ -115,6 +142,8 @@ function toUploadedContextSource(file: UploadedEvidenceFile): ContextSource {
 		kind: inferSourceKind(file.name),
 		title: file.name,
 		summary: summarizeUploadedText(file.text),
+		fullText: file.text,
+		extractionKind: 'keyword',
 		createdAt: file.lastModified,
 		updatedAt: file.lastModified,
 		client: UPLOADED_CLIENT,
@@ -179,6 +208,14 @@ function getUploadedRequiredClaimKinds(sources: readonly ContextSource[]) {
 	];
 
 	return claimKinds.length > 0 ? claimKinds : ['clientConcern' as const];
+}
+
+export function getUploadedSuggestedContextNeedKinds(
+	files: readonly UploadedEvidenceFile[]
+): ContextNeedKind[] {
+	const kinds = files.flatMap((file) => file.extractedEvidence?.suggestedContextNeedKinds ?? []);
+
+	return [...new Set(kinds.filter((kind): kind is ContextNeedKind => typeof kind === 'string'))];
 }
 
 function getUploadedClaimSupport(matchCount: number): SourceClaimSupport {

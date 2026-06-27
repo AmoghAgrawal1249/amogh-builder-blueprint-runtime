@@ -174,7 +174,7 @@ The route starts as a data-source catalog and upload surface. Selecting a fixtur
 
 The route server-loads fixture assessments through `buildEvidenceLabViewData`, then renders a product-like dashboard for inspecting fixture truth, source assessments, source contents, bundle-level evidence, corroboration, conflicts, and unresolved weaknesses.
 
-Uploaded files are read locally in the browser and converted into synthetic source records with deterministic keyword heuristics. Uploads are not persisted and are not sent to an LLM.
+Uploaded files are first read locally in the browser and converted into synthetic source records with deterministic keyword heuristics. The public prototype then starts GPT-5.5 extraction automatically. Uploads are not persisted, and deterministic keyword parsing remains the fallback if AI extraction fails.
 
 Supported query params:
 

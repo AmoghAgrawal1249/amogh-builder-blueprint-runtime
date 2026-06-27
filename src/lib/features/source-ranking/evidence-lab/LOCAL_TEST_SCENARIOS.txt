@@ -24,9 +24,16 @@ Manual checks
 5. Upload text containing words like implementation, timeline, pricing, stakeholder, renewal, decision, confidential, partner.
    Expected: the uploaded source receives matching claim kinds and sensitivity values based on those keywords.
 
+6. After uploading a realistic email, wait for automatic GPT-5.5 extraction.
+   Expected: the source mode changes from Keyword parsed to AI extracted, source claims are replaced by OpenAI's structured extraction, and the deterministic scoring reruns on the normalized output.
+
+7. Upload northstar-renewal-thread.eml from static/evidence-lab-samples and wait for AI extraction.
+   Expected: pricing context is treated as stale/validation-needed, implementation timeline is treated as current context, and cautions mention not using pricing as the main blocker without Finance confirmation.
+
 Important notes
 ---------------
-- Uploads are browser-local only.
+- Keyword-parsed uploads are browser-local only.
 - Uploaded file contents are not persisted to Convex.
-- Uploaded file contents are not sent to an LLM.
-- The upload parser is deterministic and keyword-based, not semantic.
+- Uploaded file contents are sent to OpenAI by default after upload in this public prototype.
+- AI extraction uses GPT-5.5 with low reasoning effort on the server.
+- The final ranking/scoring is still deterministic after extraction.

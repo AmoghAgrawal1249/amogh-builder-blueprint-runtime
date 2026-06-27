@@ -101,6 +101,8 @@ export type SourceClaim = {
 	support: SourceClaimSupport;
 	stance?: SourceClaimStance;
 	sensitivity: SourceSensitivityLevel;
+	requiresValidation?: boolean;
+	reason?: string;
 };
 
 export type ContextSource = {
@@ -108,6 +110,10 @@ export type ContextSource = {
 	kind: ContextSourceKind;
 	title: string;
 	summary?: string;
+	fullText?: string;
+	extractionKind?: 'fixture' | 'keyword' | 'ai';
+	cautions?: readonly string[];
+	missingContext?: readonly string[];
 	createdAt: number;
 	updatedAt?: number;
 	client?: EvidenceEntityRef;
