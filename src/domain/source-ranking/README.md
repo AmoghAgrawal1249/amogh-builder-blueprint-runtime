@@ -174,7 +174,11 @@ The route starts as a data-source catalog and upload surface. Selecting a fixtur
 
 The route server-loads fixture assessments through `buildEvidenceLabViewData`, then renders a product-like dashboard for inspecting fixture truth, source assessments, source contents, bundle-level evidence, corroboration, conflicts, and unresolved weaknesses.
 
+The dashboard groups claims into usable now, needs validation, and do not state directly. This grouping is a UI/view-model interpretation for readability; it is not a final automation decision and does not replace deterministic ranking.
+
 Uploaded files are first read locally in the browser and converted into synthetic source records with deterministic keyword heuristics. The public prototype then starts GPT-5.5 extraction automatically. Uploads are not persisted, and deterministic keyword parsing remains the fallback if AI extraction fails.
+
+Uploaded source summaries are not shown by default in the reader. Users can open full uploaded text with `See full text`, while raw score explanations and weaknesses live behind `View detailed analysis`.
 
 Supported query params:
 

@@ -3,7 +3,13 @@
 	import { page } from '$app/state';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { assessEvidenceBundle } from '$domain/source-ranking';
-	import type { ContextSource, SourceAssessment, SourceTier } from '$domain/source-ranking';
+	import type {
+		ContextSource,
+		OwnerSignal,
+		SourceAssessment,
+		SourceClaim,
+		SourceTier
+	} from '$domain/source-ranking';
 	import {
 		buildEvidenceLabViewData,
 		buildUploadedEvidenceBundle,
@@ -28,6 +34,7 @@
 	let isReadingFiles = $state(false);
 	let aiExtractionError = $state<string | null>(null);
 	let isExtractingWithAi = $state(false);
+	let openFullTextSourceId = $state<string | null>(null);
 
 	const lab = $derived(
 		buildEvidenceLabViewData({
@@ -76,6 +83,7 @@
 	const activeMode = $derived(uploadedBundle ? 'upload' : lab.hasSelectedFixture ? 'fixture' : 'catalog');
 	const activeAssessment = $derived(activeMode === 'upload' ? uploadedAssessment : lab.selected.assessment);
 	const activeRows = $derived<readonly SourceRow[]>(activeMode === 'upload' ? uploadedRows : lab.selected.sourceRows);
+	const activeVisibleRows = $derived(activeRows.filter((row) => !row.isHidden));
 	const activeSelectedRow = $derived(activeMode === 'upload' ? selectedUploadedRow : lab.selected.selectedSourceRow);
 	const activeTitle = $derived(activeMode === 'upload' ? 'Uploaded data sources' : lab.selected.fixture.title);
 	const uploadedExtractionKind = $derived(
@@ -88,6 +96,26 @@
 			? `${uploadedExtractionKind} evidence bundle created from uploaded files. Nothing is persisted.`
 			: lab.selected.fixture.description
 	);
+	const activeClaimGroups = $derived(
+		groupClaims(activeVisibleRows.flatMap((row) => row.source.claims))
+	);
+	const selectedClaimGroups = $derived(
+		groupClaims(activeSelectedRow?.source.claims ?? [])
+	);
+	const activeOwnerGroups = $derived(
+		groupOwnerSignals(activeVisibleRows.flatMap((row) => row.source.ownerSignals))
+	);
+	const isFullTextOpen = $derived(
+		Boolean(activeSelectedRow && openFullTextSourceId === activeSelectedRow.source.id)
+	);
+
+	$effect(() => {
+		const selectedSourceId = activeSelectedRow?.source.id ?? null;
+
+		if (openFullTextSourceId && openFullTextSourceId !== selectedSourceId) {
+			openFullTextSourceId = null;
+		}
+	});
 
 	function formatPercent(value: number) {
 		return `${Math.round(value * 100)}%`;
@@ -131,6 +159,88 @@
 		}
 
 		return 'border-red-200 bg-red-50 text-red-700';
+	}
+
+	function claimGroupClass(kind: 'usableNow' | 'needsValidation' | 'doNotUse') {
+		if (kind === 'usableNow') {
+			return 'border-emerald-100 bg-emerald-50 text-emerald-900';
+		}
+
+		if (kind === 'needsValidation') {
+			return 'border-amber-100 bg-amber-50 text-amber-900';
+		}
+
+		return 'border-red-100 bg-red-50 text-red-900';
+	}
+
+	function groupClaims(claims: readonly SourceClaim[]) {
+		const groups = {
+			usableNow: [] as SourceClaim[],
+			needsValidation: [] as SourceClaim[],
+			doNotUse: [] as SourceClaim[]
+		};
+
+		for (const claim of claims) {
+			if (claim.stance === 'contradicts' || claim.sensitivity === 'high') {
+				groups.doNotUse.push(claim);
+				continue;
+			}
+
+			if (claim.requiresValidation || claim.support === 'weak') {
+				groups.needsValidation.push(claim);
+				continue;
+			}
+
+			groups.usableNow.push(claim);
+		}
+
+		return groups;
+	}
+
+	function groupOwnerSignals(ownerSignals: readonly OwnerSignal[]) {
+		return {
+			sourceOwners: dedupeOwnerSignals(
+				ownerSignals.filter((ownerSignal) => ownerSignal.kind !== 'unknown' && ownerSignal.owner)
+			),
+			validationTargets: dedupeOwnerSignals(
+				ownerSignals.filter((ownerSignal) => ownerSignal.kind === 'unknown' && ownerSignal.owner)
+			)
+		};
+	}
+
+	function dedupeOwnerSignals(ownerSignals: readonly OwnerSignal[]) {
+		const dedupedSignals: OwnerSignal[] = [];
+
+		for (const ownerSignal of ownerSignals) {
+			const key = ownerSignal.owner?.id ?? `${ownerSignal.kind}:${ownerSignal.reason}`;
+			const existingSignalIndex = dedupedSignals.findIndex((signal) => {
+				const signalKey = signal.owner?.id ?? `${signal.kind}:${signal.reason}`;
+
+				return signalKey === key;
+			});
+
+			if (existingSignalIndex < 0) {
+				dedupedSignals.push(ownerSignal);
+				continue;
+			}
+
+			if (ownerSignal.confidence > dedupedSignals[existingSignalIndex].confidence) {
+				dedupedSignals[existingSignalIndex] = ownerSignal;
+			}
+		}
+
+		return dedupedSignals.sort((first, second) => second.confidence - first.confidence);
+	}
+
+	function claimSummary(claims: readonly SourceClaim[]) {
+		return claims
+			.slice(0, 3)
+			.map((claim) => formatLabel(claim.kind))
+			.join(', ');
+	}
+
+	function toggleFullText(sourceId: string) {
+		openFullTextSourceId = openFullTextSourceId === sourceId ? null : sourceId;
 	}
 
 	function evidenceLabHref({
@@ -464,7 +574,7 @@
 							<div class="flex items-start justify-between gap-3">
 								<div>
 									<p class="text-sm font-semibold text-stone-950">Source reader</p>
-									<p class="mt-1 text-xs text-stone-500">Read the selected data source and its extracted claims.</p>
+									<p class="mt-1 text-xs text-stone-500">Read the selected data source when needed.</p>
 								</div>
 								{#if activeSelectedRow?.isHidden}
 									<span class="rounded-full border border-stone-200 bg-stone-50 px-2 py-1 text-[0.68rem] text-stone-500">Hidden</span>
@@ -473,94 +583,39 @@
 
 							{#if activeSelectedRow}
 								<div class="mt-4 rounded-sm border border-stone-200 bg-stone-50 p-4">
-									<div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-									<div>
-										<p class="text-base font-semibold text-stone-950">{activeSelectedRow.source.title}</p>
-										<p class="mt-2 text-sm leading-6 text-stone-600">{activeSelectedRow.source.summary}</p>
-										{#if activeSelectedRow.source.fullText}
-											<details class="mt-3 rounded-sm border border-stone-200 bg-white p-3">
-												<summary class="cursor-pointer text-xs font-medium text-stone-900">Read full uploaded text</summary>
-												<pre class="mt-3 max-h-72 overflow-auto whitespace-pre-wrap text-xs leading-5 text-stone-600">{activeSelectedRow.source.fullText}</pre>
-											</details>
-										{/if}
-									</div>
-									<div class="flex flex-col items-start gap-2 md:items-end">
-										<span class="w-fit rounded-full border border-stone-200 bg-white px-2 py-1 text-[0.68rem] text-stone-500">{activeSelectedRow.source.kind}</span>
-										{#if activeSelectedRow.source.extractionKind}
-											<span class="w-fit rounded-full border border-stone-200 bg-white px-2 py-1 text-[0.68rem] text-stone-500">{formatLabel(activeSelectedRow.source.extractionKind)}</span>
-										{/if}
-									</div>
-									</div>
-
-									<div class="mt-4 grid gap-3 md:grid-cols-2">
-										<p class="text-xs text-stone-500"><span class="font-medium text-stone-900">Created:</span> {formatDate(activeSelectedRow.source.createdAt)}</p>
-										<p class="text-xs text-stone-500"><span class="font-medium text-stone-900">Updated:</span> {formatDate(activeSelectedRow.source.updatedAt ?? activeSelectedRow.source.createdAt)}</p>
-										<p class="text-xs text-stone-500"><span class="font-medium text-stone-900">Client:</span> {activeSelectedRow.source.client?.name ?? 'None'}</p>
-										<p class="text-xs text-stone-500"><span class="font-medium text-stone-900">Opportunity:</span> {activeSelectedRow.source.opportunity?.name ?? 'None'}</p>
-									</div>
-
-									<div class="mt-4 grid gap-3">
+									<div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
 										<div>
-											<p class="text-[0.72rem] font-medium text-stone-500">Claims</p>
-											<div class="mt-2 grid gap-2">
-												{#each activeSelectedRow.source.claims as claim (claim.id)}
-													<div class="rounded-sm border border-stone-200 bg-white p-3">
-														<div class="flex flex-wrap gap-2">
-															<span class="rounded-full border border-stone-200 bg-stone-50 px-2 py-0.5 text-[0.65rem] text-stone-500">{formatLabel(claim.kind)}</span>
-															<span class="rounded-full border border-stone-200 bg-stone-50 px-2 py-0.5 text-[0.65rem] text-stone-500">{claim.support}</span>
-															{#if claim.stance}
-																<span class="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[0.65rem] text-red-700">{claim.stance}</span>
-															{/if}
-															{#if claim.requiresValidation}
-																<span class="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[0.65rem] text-amber-700">Needs validation</span>
-															{/if}
-														</div>
-														<p class="mt-2 text-xs leading-5 text-stone-700">{claim.text}</p>
-														{#if claim.reason}
-															<p class="mt-2 text-[0.68rem] leading-5 text-stone-500">{claim.reason}</p>
-														{/if}
-													</div>
-												{/each}
+											<p class="text-base font-semibold text-stone-950">{activeSelectedRow.source.title}</p>
+											<div class="mt-3 grid gap-2 text-xs text-stone-500 md:grid-cols-2">
+												<p><span class="font-medium text-stone-900">Created:</span> {formatDate(activeSelectedRow.source.createdAt)}</p>
+												<p><span class="font-medium text-stone-900">Updated:</span> {formatDate(activeSelectedRow.source.updatedAt ?? activeSelectedRow.source.createdAt)}</p>
+												<p><span class="font-medium text-stone-900">Client:</span> {activeSelectedRow.source.client?.name ?? 'None'}</p>
+												<p><span class="font-medium text-stone-900">Opportunity:</span> {activeSelectedRow.source.opportunity?.name ?? 'None'}</p>
 											</div>
 										</div>
-
-										<div>
-											<p class="text-[0.72rem] font-medium text-stone-500">Owner signals</p>
-											<div class="mt-2 grid gap-2">
-												{#each activeSelectedRow.source.ownerSignals as signal (`${signal.kind}:${signal.reason}`)}
-													<div class="rounded-sm border border-stone-200 bg-white p-3">
-														<p class="text-xs font-medium text-stone-900">{signal.owner?.name ?? 'Unknown owner'}</p>
-														<p class="mt-1 text-xs text-stone-500">{formatLabel(signal.kind)} · {formatPercent(signal.confidence)}</p>
-														<p class="mt-2 text-xs leading-5 text-stone-600">{signal.reason}</p>
-													</div>
-												{/each}
-											</div>
+										<div class="flex flex-col items-start gap-2 md:items-end">
+											<span class="w-fit rounded-full border border-stone-200 bg-white px-2 py-1 text-[0.68rem] text-stone-500">{activeSelectedRow.source.kind}</span>
+											{#if activeSelectedRow.source.extractionKind}
+												<span class="w-fit rounded-full border border-stone-200 bg-white px-2 py-1 text-[0.68rem] text-stone-500">{formatLabel(activeSelectedRow.source.extractionKind)}</span>
+											{/if}
 										</div>
 									</div>
 
-									{#if activeSelectedRow.source.cautions?.length || activeSelectedRow.source.missingContext?.length}
-										<div class="mt-4 grid gap-3 xl:grid-cols-2">
-											{#if activeSelectedRow.source.cautions?.length}
-												<div class="rounded-sm border border-amber-100 bg-amber-50 p-3">
-													<p class="text-[0.72rem] font-medium text-amber-900">AI cautions</p>
-													<ul class="mt-2 list-disc pl-4 text-xs leading-5 text-amber-800">
-														{#each activeSelectedRow.source.cautions as caution (caution)}
-															<li>{caution}</li>
-														{/each}
-													</ul>
-												</div>
-											{/if}
-											{#if activeSelectedRow.source.missingContext?.length}
-												<div class="rounded-sm border border-blue-100 bg-blue-50 p-3">
-													<p class="text-[0.72rem] font-medium text-blue-900">Missing context</p>
-													<ul class="mt-2 list-disc pl-4 text-xs leading-5 text-blue-800">
-														{#each activeSelectedRow.source.missingContext as missingContext (missingContext)}
-															<li>{missingContext}</li>
-														{/each}
-													</ul>
-												</div>
-											{/if}
-										</div>
+									{#if activeSelectedRow.source.fullText}
+										<button
+											type="button"
+											class="mt-4 rounded-sm border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-stone-900 hover:bg-stone-50"
+											onclick={() => toggleFullText(activeSelectedRow.source.id)}
+										>
+											{isFullTextOpen ? 'Hide full text' : 'See full text'}
+										</button>
+										{#if isFullTextOpen}
+											<pre class="mt-3 max-h-72 overflow-auto rounded-sm border border-stone-200 bg-white p-3 whitespace-pre-wrap text-xs leading-5 text-stone-600">{activeSelectedRow.source.fullText}</pre>
+										{/if}
+									{:else}
+										<p class="mt-4 rounded-sm border border-dashed border-stone-200 bg-white px-3 py-2 text-xs text-stone-500">
+											Full source text is not available for this fixture yet.
+										</p>
 									{/if}
 								</div>
 							{:else}
@@ -573,21 +628,201 @@
 
 						<div class="rounded-sm border border-stone-200/70 bg-white p-5 shadow-sm">
 							<p class="text-sm font-semibold text-stone-950">Evidence summary</p>
-							<div class="mt-4 grid gap-2 text-xs leading-5 text-stone-600">
-								<p><span class="font-medium text-stone-900">Strongest tier:</span> {activeAssessment.strongestTier ? formatLabel(activeAssessment.strongestTier) : 'None'}</p>
-								<p><span class="font-medium text-stone-900">Likely owners:</span> {activeAssessment.likelyOwnerSignals.map((signal) => signal.owner?.name).filter(Boolean).join(', ') || 'None'}</p>
-								<p><span class="font-medium text-stone-900">Corroborated:</span> {activeAssessment.corroboratedClaimKinds.map(formatLabel).join(', ') || 'None'}</p>
-								<p><span class="font-medium text-stone-900">Conflicting:</span> {activeAssessment.conflictingClaimKinds.map(formatLabel).join(', ') || 'None'}</p>
-								<p><span class="font-medium text-stone-900">Unresolved weaknesses:</span> {activeAssessment.unresolvedWeaknesses.length}</p>
+							<div class="mt-4 grid gap-3">
+								<div class={`rounded-sm border p-3 ${claimGroupClass('usableNow')}`}>
+									<p class="text-xs font-semibold">Usable now · {activeClaimGroups.usableNow.length}</p>
+									<p class="mt-1 text-xs leading-5 opacity-80">{claimSummary(activeClaimGroups.usableNow) || 'No directly usable claims yet.'}</p>
+								</div>
+								<div class={`rounded-sm border p-3 ${claimGroupClass('needsValidation')}`}>
+									<p class="text-xs font-semibold">Needs validation · {activeClaimGroups.needsValidation.length}</p>
+									<p class="mt-1 text-xs leading-5 opacity-80">{claimSummary(activeClaimGroups.needsValidation) || 'No validation-needed claims.'}</p>
+								</div>
+								<div class={`rounded-sm border p-3 ${claimGroupClass('doNotUse')}`}>
+									<p class="text-xs font-semibold">Do not state directly · {activeClaimGroups.doNotUse.length}</p>
+									<p class="mt-1 text-xs leading-5 opacity-80">{claimSummary(activeClaimGroups.doNotUse) || 'No contradicting or blocked claims.'}</p>
+								</div>
 							</div>
-							{#if activeMode === 'fixture'}
-								<div class="mt-4 rounded-sm border border-stone-200 bg-stone-50 p-3">
-									<p class="text-[0.72rem] font-medium text-stone-500">Local truth</p>
-									<p class="mt-2 text-xs leading-5 text-stone-600">Decision: {formatLabel(lab.selected.fixture.expected.automationDecision)}</p>
-									<p class="mt-1 text-xs leading-5 text-stone-600">Weak claims: {lab.selected.fixture.expected.weakClaimIds.length}</p>
+
+							<div class="mt-4 grid gap-3 md:grid-cols-2">
+								<div class="rounded-sm border border-stone-200 bg-stone-50 p-3">
+									<p class="text-[0.72rem] font-medium text-stone-500">Likely source owner</p>
+									<div class="mt-2 flex flex-wrap gap-2">
+										{#if activeOwnerGroups.sourceOwners.length === 0}
+											<span class="text-xs text-stone-400">None</span>
+										{:else}
+											{#each activeOwnerGroups.sourceOwners as ownerSignal (`${ownerSignal.kind}:${ownerSignal.owner?.id ?? ownerSignal.reason}`)}
+												<span class="rounded-full border border-stone-200 bg-white px-2 py-1 text-[0.68rem] text-stone-600">
+													{ownerSignal.owner?.name ?? 'Unknown'} · {formatLabel(ownerSignal.kind)}
+												</span>
+											{/each}
+										{/if}
+									</div>
+								</div>
+								<div class="rounded-sm border border-stone-200 bg-stone-50 p-3">
+									<p class="text-[0.72rem] font-medium text-stone-500">Validation targets</p>
+									<div class="mt-2 flex flex-wrap gap-2">
+										{#if activeOwnerGroups.validationTargets.length === 0}
+											<span class="text-xs text-stone-400">None</span>
+										{:else}
+											{#each activeOwnerGroups.validationTargets as ownerSignal (`${ownerSignal.kind}:${ownerSignal.owner?.id ?? ownerSignal.reason}`)}
+												<span class="rounded-full border border-stone-200 bg-white px-2 py-1 text-[0.68rem] text-stone-600">
+													{ownerSignal.owner?.name ?? 'Unknown'}
+												</span>
+											{/each}
+										{/if}
+									</div>
+								</div>
+							</div>
+						</div>
+					</section>
+
+					<section class="rounded-sm border border-stone-200/70 bg-white p-5 shadow-sm">
+						<p class="text-sm font-semibold text-stone-950">Selected source claims</p>
+						{#if activeSelectedRow}
+							<div class="mt-4 grid gap-3 xl:grid-cols-3">
+								<div class={`rounded-sm border p-3 ${claimGroupClass('usableNow')}`}>
+									<p class="text-xs font-semibold">Usable now</p>
+									<div class="mt-2 grid gap-2">
+										{#if selectedClaimGroups.usableNow.length === 0}
+											<p class="text-xs opacity-70">No usable claims in this source.</p>
+										{:else}
+											{#each selectedClaimGroups.usableNow as claim (claim.id)}
+												<p class="rounded-sm bg-white/70 p-2 text-xs leading-5">{claim.text}</p>
+											{/each}
+										{/if}
+									</div>
+								</div>
+								<div class={`rounded-sm border p-3 ${claimGroupClass('needsValidation')}`}>
+									<p class="text-xs font-semibold">Needs validation</p>
+									<div class="mt-2 grid gap-2">
+										{#if selectedClaimGroups.needsValidation.length === 0}
+											<p class="text-xs opacity-70">No validation-needed claims.</p>
+										{:else}
+											{#each selectedClaimGroups.needsValidation as claim (claim.id)}
+												<p class="rounded-sm bg-white/70 p-2 text-xs leading-5">{claim.text}</p>
+											{/each}
+										{/if}
+									</div>
+								</div>
+								<div class={`rounded-sm border p-3 ${claimGroupClass('doNotUse')}`}>
+									<p class="text-xs font-semibold">Do not state directly</p>
+									<div class="mt-2 grid gap-2">
+										{#if selectedClaimGroups.doNotUse.length === 0}
+											<p class="text-xs opacity-70">No contradicting or blocked claims.</p>
+										{:else}
+											{#each selectedClaimGroups.doNotUse as claim (claim.id)}
+												<p class="rounded-sm bg-white/70 p-2 text-xs leading-5">{claim.text}</p>
+											{/each}
+										{/if}
+									</div>
+								</div>
+							</div>
+
+							{#if activeSelectedRow.source.cautions?.length || activeSelectedRow.source.missingContext?.length}
+								<div class="mt-4 grid gap-3 xl:grid-cols-2">
+									{#if activeSelectedRow.source.cautions?.length}
+										<div class="rounded-sm border border-amber-100 bg-amber-50 p-3">
+											<p class="text-[0.72rem] font-medium text-amber-900">AI cautions</p>
+											<ul class="mt-2 list-disc pl-4 text-xs leading-5 text-amber-800">
+												{#each activeSelectedRow.source.cautions as caution (caution)}
+													<li>{caution}</li>
+												{/each}
+											</ul>
+										</div>
+									{/if}
+									{#if activeSelectedRow.source.missingContext?.length}
+										<div class="rounded-sm border border-blue-100 bg-blue-50 p-3">
+											<p class="text-[0.72rem] font-medium text-blue-900">Missing context</p>
+											<ul class="mt-2 list-disc pl-4 text-xs leading-5 text-blue-800">
+												{#each activeSelectedRow.source.missingContext as missingContext (missingContext)}
+													<li>{missingContext}</li>
+												{/each}
+											</ul>
+										</div>
+									{/if}
 								</div>
 							{/if}
-						</div>
+						{:else}
+							<p class="mt-4 rounded-sm border border-dashed border-stone-200 bg-stone-50 p-6 text-center text-xs text-stone-500">Select a source to see grouped claims.</p>
+						{/if}
+					</section>
+
+					<section class="rounded-sm border border-stone-200/70 bg-white p-5 shadow-sm">
+						<details>
+							<summary class="cursor-pointer text-sm font-semibold text-stone-950">View detailed analysis</summary>
+							<div class="mt-4 grid gap-4">
+								<div class="rounded-sm border border-stone-200 bg-stone-50 p-3">
+									<p class="text-[0.72rem] font-medium text-stone-500">Bundle details</p>
+									<div class="mt-2 grid gap-2 text-xs leading-5 text-stone-600 md:grid-cols-2">
+										<p><span class="font-medium text-stone-900">Strongest tier:</span> {activeAssessment.strongestTier ? formatLabel(activeAssessment.strongestTier) : 'None'}</p>
+										<p><span class="font-medium text-stone-900">Likely owners:</span> {activeAssessment.likelyOwnerSignals.map((signal) => signal.owner?.name).filter(Boolean).join(', ') || 'None'}</p>
+										<p><span class="font-medium text-stone-900">Corroborated:</span> {activeAssessment.corroboratedClaimKinds.map(formatLabel).join(', ') || 'None'}</p>
+										<p><span class="font-medium text-stone-900">Conflicting:</span> {activeAssessment.conflictingClaimKinds.map(formatLabel).join(', ') || 'None'}</p>
+										<p><span class="font-medium text-stone-900">Unresolved weaknesses:</span> {activeAssessment.unresolvedWeaknesses.length}</p>
+									</div>
+								</div>
+
+								<div class="grid gap-3">
+									{#each activeRows as row (row.source.id)}
+										<div class="rounded-sm border border-stone-200 bg-white p-3">
+											<div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+												<div>
+													<p class="text-sm font-medium text-stone-950">{row.source.title}</p>
+													<p class="mt-1 text-xs text-stone-500">{row.source.summary}</p>
+												</div>
+												<span class={`w-fit rounded-full border px-2 py-1 text-[0.68rem] font-medium ${tierClass(row.assessment?.tier ?? row.expectedTier)}`}>
+													{row.assessment ? row.assessment.tier : `Expected ${row.expectedTier ?? 'hidden'}`}
+												</span>
+											</div>
+
+											{#if row.assessment}
+												<div class="mt-3 grid gap-2 md:grid-cols-3">
+													<p class="rounded-sm bg-stone-50 p-2 text-xs text-stone-600"><span class="font-medium text-stone-900">Confidence:</span> {formatPercent(row.assessment.aggregateConfidence)}</p>
+													<p class="rounded-sm bg-stone-50 p-2 text-xs text-stone-600"><span class="font-medium text-stone-900">Risk:</span> {formatPercent(row.assessment.aggregateRisk)}</p>
+													<p class="rounded-sm bg-stone-50 p-2 text-xs text-stone-600"><span class="font-medium text-stone-900">Matched claims:</span> {row.assessment.matchedClaims.length}</p>
+												</div>
+
+												<div class="mt-3 grid gap-3 xl:grid-cols-2">
+													<div>
+														<p class="text-[0.72rem] font-medium text-stone-500">Score explanations</p>
+														<div class="mt-2 grid gap-1.5">
+															{#each row.assessment.explanations as explanation (explanation.dimension)}
+																<div class="flex items-start justify-between gap-3 rounded-sm border border-stone-100 bg-stone-50 px-2 py-1.5 text-xs">
+																	<span class="text-stone-600">{formatLabel(explanation.dimension)}</span>
+																	<span class="font-medium text-stone-950">{formatPercent(explanation.score)}</span>
+																</div>
+															{/each}
+														</div>
+													</div>
+													<div>
+														<p class="text-[0.72rem] font-medium text-stone-500">Weaknesses</p>
+														<div class="mt-2 grid gap-1.5">
+															{#if row.assessment.weaknesses.length === 0}
+																<p class="rounded-sm border border-emerald-100 bg-emerald-50 px-2 py-2 text-xs text-emerald-700">No source-level weaknesses.</p>
+															{:else}
+																{#each row.assessment.weaknesses as weakness (`${weakness.dimension}:${weakness.message}`)}
+																	<p class="rounded-sm border border-amber-100 bg-amber-50 px-2 py-2 text-xs leading-5 text-amber-800">
+																		<span class="font-medium">{formatLabel(weakness.dimension)}:</span> {weakness.message}
+																	</p>
+																{/each}
+															{/if}
+														</div>
+													</div>
+												</div>
+											{/if}
+										</div>
+									{/each}
+								</div>
+
+								{#if activeMode === 'fixture'}
+									<div class="rounded-sm border border-stone-200 bg-stone-50 p-3">
+										<p class="text-[0.72rem] font-medium text-stone-500">Local truth</p>
+										<p class="mt-2 text-xs leading-5 text-stone-600">Decision: {formatLabel(lab.selected.fixture.expected.automationDecision)}</p>
+										<p class="mt-1 text-xs leading-5 text-stone-600">Weak claims: {lab.selected.fixture.expected.weakClaimIds.length}</p>
+									</div>
+								{/if}
+							</div>
+						</details>
 					</section>
 				</div>
 			</div>
