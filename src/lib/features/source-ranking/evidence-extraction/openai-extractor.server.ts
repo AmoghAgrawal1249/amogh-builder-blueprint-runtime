@@ -39,6 +39,15 @@ If a source says not to state a claim as true, use stance "contradicts" for that
 If a claim is current and directly stated, use support "direct".
 If partner-channel, confidential, legal, restricted, pricing, discount, or procurement material appears, reflect sensitivity appropriately.
 
+Do not extract generic workflow framing as a claim:
+- Ignore phrases like "handoff is tricky", "this is tricky", "FYI", or "forwarding this" unless they contain a concrete client fact.
+- Do not create renewalRisk just because the word renewal appears in a workflow label. Create renewalRisk only for a concrete renewal risk, churn risk, contract risk, or expansion/upsell risk.
+
+Handle historical context carefully:
+- If an old/prior/last-year source fact is true historically, extract it as a supporting claim, not a contradiction.
+- If that historical fact is not safe to use as current context, set requiresValidation true and explain that it is historical/stale.
+- Use stance "contradicts" only for claims the source explicitly says not to state, or claims directly contradicted by newer evidence.
+
 Keep missingContext focused and minimal:
 - Include only blocking questions needed before safe automation.
 - Do not include nice-to-have details, full source-document requests, generic contact details, or broad research tasks.

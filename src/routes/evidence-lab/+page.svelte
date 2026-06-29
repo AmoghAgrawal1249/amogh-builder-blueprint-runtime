@@ -161,9 +161,13 @@
 		return 'border-red-200 bg-red-50 text-red-700';
 	}
 
-	function claimGroupClass(kind: 'usableNow' | 'needsValidation' | 'doNotUse') {
+	function claimGroupClass(kind: 'usableNow' | 'historicalContext' | 'needsValidation' | 'doNotUse') {
 		if (kind === 'usableNow') {
 			return 'border-emerald-100 bg-emerald-50 text-emerald-900';
+		}
+
+		if (kind === 'historicalContext') {
+			return 'border-sky-100 bg-sky-50 text-sky-900';
 		}
 
 		if (kind === 'needsValidation') {
@@ -176,17 +180,23 @@
 	function groupClaims(claims: readonly SourceClaim[]) {
 		const groups = {
 			usableNow: [] as SourceClaim[],
+			historicalContext: [] as SourceClaim[],
 			needsValidation: [] as SourceClaim[],
 			doNotUse: [] as SourceClaim[]
 		};
 
 		for (const claim of claims) {
-			if (claim.stance === 'contradicts' || claim.sensitivity === 'high') {
+			if (claim.stance === 'contradicts' || isUnsafeClaim(claim)) {
 				groups.doNotUse.push(claim);
 				continue;
 			}
 
-			if (claim.requiresValidation || claim.support === 'weak') {
+			if (isHistoricalClaim(claim)) {
+				groups.historicalContext.push(claim);
+				continue;
+			}
+
+			if (claim.requiresValidation || claim.support === 'weak' || claim.support === 'inferred') {
 				groups.needsValidation.push(claim);
 				continue;
 			}
@@ -195,6 +205,21 @@
 		}
 
 		return groups;
+	}
+
+	function isHistoricalClaim(claim: SourceClaim) {
+		const text = `${claim.text} ${claim.reason ?? ''}`.toLowerCase();
+
+		return /\b(old|older|stale|prior|previous|last year|historical|from last year)\b/.test(text);
+	}
+
+	function isUnsafeClaim(claim: SourceClaim) {
+		const text = `${claim.text} ${claim.reason ?? ''}`.toLowerCase();
+
+		return (
+			claim.sensitivity === 'high' ||
+			/\b(do not state|do not quote|should not be quoted|without validation|confidential partner|restricted)\b/.test(text)
+		);
 	}
 
 	function groupOwnerSignals(ownerSignals: readonly OwnerSignal[]) {
@@ -234,9 +259,9 @@
 
 	function claimSummary(claims: readonly SourceClaim[]) {
 		return claims
-			.slice(0, 3)
-			.map((claim) => formatLabel(claim.kind))
-			.join(', ');
+			.slice(0, 2)
+			.map((claim) => claim.text)
+			.join(' · ');
 	}
 
 	function toggleFullText(sourceId: string) {
@@ -628,10 +653,14 @@
 
 						<div class="rounded-sm border border-stone-200/70 bg-white p-5 shadow-sm">
 							<p class="text-sm font-semibold text-stone-950">Evidence summary</p>
-							<div class="mt-4 grid gap-3">
+							<div class="mt-4 grid gap-3 xl:grid-cols-2">
 								<div class={`rounded-sm border p-3 ${claimGroupClass('usableNow')}`}>
 									<p class="text-xs font-semibold">Usable now · {activeClaimGroups.usableNow.length}</p>
 									<p class="mt-1 text-xs leading-5 opacity-80">{claimSummary(activeClaimGroups.usableNow) || 'No directly usable claims yet.'}</p>
+								</div>
+								<div class={`rounded-sm border p-3 ${claimGroupClass('historicalContext')}`}>
+									<p class="text-xs font-semibold">Historical context · {activeClaimGroups.historicalContext.length}</p>
+									<p class="mt-1 text-xs leading-5 opacity-80">{claimSummary(activeClaimGroups.historicalContext) || 'No historical-only claims.'}</p>
 								</div>
 								<div class={`rounded-sm border p-3 ${claimGroupClass('needsValidation')}`}>
 									<p class="text-xs font-semibold">Needs validation · {activeClaimGroups.needsValidation.length}</p>
@@ -679,7 +708,7 @@
 					<section class="rounded-sm border border-stone-200/70 bg-white p-5 shadow-sm">
 						<p class="text-sm font-semibold text-stone-950">Selected source claims</p>
 						{#if activeSelectedRow}
-							<div class="mt-4 grid gap-3 xl:grid-cols-3">
+							<div class="mt-4 grid gap-3 xl:grid-cols-4">
 								<div class={`rounded-sm border p-3 ${claimGroupClass('usableNow')}`}>
 									<p class="text-xs font-semibold">Usable now</p>
 									<div class="mt-2 grid gap-2">
@@ -687,6 +716,18 @@
 											<p class="text-xs opacity-70">No usable claims in this source.</p>
 										{:else}
 											{#each selectedClaimGroups.usableNow as claim (claim.id)}
+												<p class="rounded-sm bg-white/70 p-2 text-xs leading-5">{claim.text}</p>
+											{/each}
+										{/if}
+									</div>
+								</div>
+								<div class={`rounded-sm border p-3 ${claimGroupClass('historicalContext')}`}>
+									<p class="text-xs font-semibold">Historical context</p>
+									<div class="mt-2 grid gap-2">
+										{#if selectedClaimGroups.historicalContext.length === 0}
+											<p class="text-xs opacity-70">No historical-only claims.</p>
+										{:else}
+											{#each selectedClaimGroups.historicalContext as claim (claim.id)}
 												<p class="rounded-sm bg-white/70 p-2 text-xs leading-5">{claim.text}</p>
 											{/each}
 										{/if}

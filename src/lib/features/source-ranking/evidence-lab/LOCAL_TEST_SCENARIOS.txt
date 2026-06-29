@@ -31,7 +31,7 @@ Manual checks
    Expected: pricing context is treated as stale/validation-needed, implementation timeline is treated as current context, cautions mention not using pricing as the main blocker without Finance confirmation, and missing context stays focused to a few blocking validation questions.
 
 8. After extraction, inspect the grouped claim cards.
-   Expected: current implementation/timeline/stakeholder claims appear under usable context, stale pricing/procurement claims appear under needs validation, and contradiction-style claims appear under do not state directly.
+   Expected: current implementation/timeline/stakeholder claims appear under usable context, stale true historical pricing/procurement facts appear under historical context, claims requiring confirmation appear under needs validation, and contradiction-style claims appear under do not state directly.
 
 9. Open a source and click See full text.
    Expected: uploaded source text is hidden by default and appears only after clicking See full text.
@@ -47,3 +47,4 @@ Important notes
 - AI extraction uses GPT-5.5 with low reasoning effort on the server.
 - The final ranking/scoring is still deterministic after extraction.
 - Claim grouping is a UI interpretation layer; it does not replace the deterministic ranking engine.
+- Generic workflow framing like "handoff is tricky" should not be treated as a usable claim.
