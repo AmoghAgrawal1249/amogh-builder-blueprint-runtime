@@ -23,11 +23,14 @@ Week 3 can add trajectory search around those deterministic decisions, but it sh
 
 ## Files
 
+- `decisions.ts`: automation decision, blocker, and future decision-engine input/output types.
+- `decision-policy.ts`: first-pass automation policy constants and supported decision-kind helpers.
 - `types.ts`: domain types for context needs, sources, claims, owner signals, scores, assessments, bundles, and fixtures.
 - `policy.ts`: centralized thresholds, normalized priors, and confidence weights.
 - `scoring.ts`: deterministic source-level scoring and tiering.
 - `evidence.ts`: deterministic bundle-level assessment, aggregation, corroboration, and conflict detection.
 - `index.ts`: public exports.
+- `decision-policy.test.ts`: invariants for the decision policy scaffold and fixture decision-truth compatibility.
 - `policy.test.ts`: invariants for the normalized scoring policy.
 - `scoring.test.ts`: fixture-backed tests for source-level scoring behavior.
 - `evidence.test.ts`: fixture-backed tests for evidence-bundle assessment behavior.
@@ -151,6 +154,26 @@ Example:
 ```
 
 Day 3 only detects conflict at the claim-kind level. It does not decide whether that conflict should produce user review or blocking; Week 2 owns that decision.
+
+## Automation Decision Scaffold
+
+Week 2 converts `EvidenceAssessment` into one of four automation decisions:
+
+- `autoHandoff`
+- `generateContextRequest`
+- `needsUserReview`
+- `blocked`
+
+Day 1 of Week 2 only defines the decision shape and policy constants. It does not implement `decideAutomation` yet.
+
+The first decision policy is intentionally conservative:
+
+- Auto handoff requires at least one strong source.
+- Conflicting evidence should force review unless a later policy blocks it first.
+- Validation-required claims should prefer a context request when a likely owner exists.
+- Weak/no-owner/high-risk evidence should be able to block automation.
+
+OpenAI extraction is not allowed to return the final automation decision. It can extract claims, cautions, owner signals, and missing context, but deterministic policy owns the decision.
 
 ## Fixture Data
 
