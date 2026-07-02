@@ -25,12 +25,14 @@ Week 3 can add trajectory search around those deterministic decisions, but it sh
 
 - `decisions.ts`: automation decision, blocker, and future decision-engine input/output types.
 - `decision-policy.ts`: first-pass automation policy constants and supported decision-kind helpers.
+- `decide-automation.ts`: pure deterministic engine that converts an evidence assessment into the official automation decision.
 - `types.ts`: domain types for context needs, sources, claims, owner signals, scores, assessments, bundles, and fixtures.
 - `policy.ts`: centralized thresholds, normalized priors, and confidence weights.
 - `scoring.ts`: deterministic source-level scoring and tiering.
 - `evidence.ts`: deterministic bundle-level assessment, aggregation, corroboration, and conflict detection.
 - `index.ts`: public exports.
 - `decision-policy.test.ts`: invariants for the decision policy scaffold and fixture decision-truth compatibility.
+- `decide-automation.test.ts`: fixture-backed and focused tests for the Week 2 decision engine.
 - `policy.test.ts`: invariants for the normalized scoring policy.
 - `scoring.test.ts`: fixture-backed tests for source-level scoring behavior.
 - `evidence.test.ts`: fixture-backed tests for evidence-bundle assessment behavior.
@@ -164,14 +166,18 @@ Week 2 converts `EvidenceAssessment` into one of four automation decisions:
 - `needsUserReview`
 - `blocked`
 
-Day 1 of Week 2 only defines the decision shape and policy constants. It does not implement `decideAutomation` yet.
+Day 2 of Week 2 implements `decideAutomation` as a pure deterministic function. It returns the official decision, primary source IDs, short reason, structured blockers, and owner IDs for context-request decisions.
 
 The first decision policy is intentionally conservative:
 
 - Auto handoff requires at least one strong source.
-- Conflicting evidence should force review unless a later policy blocks it first.
+- Auto handoff is checked before context request so fresh strong evidence can flow with minimal friction.
+- Fresh strong evidence can resolve an older weaker conflict when it clearly wins on tier, freshness, and confidence.
+- Unresolved conflicting evidence should force review unless a later policy blocks it first.
 - Validation-required claims should prefer a context request when a likely owner exists.
 - Weak/no-owner/high-risk evidence should be able to block automation.
+- `sourceUploader` does not count as a validation owner because the uploader may only be uploading on someone else's behalf.
+- `documentAuthor` can count as a validation owner only when the owner signal is confident enough.
 
 OpenAI extraction is not allowed to return the final automation decision. It can extract claims, cautions, owner signals, and missing context, but deterministic policy owns the decision.
 

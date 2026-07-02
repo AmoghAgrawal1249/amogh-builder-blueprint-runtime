@@ -3,6 +3,7 @@ import type {
 	AutomationDecisionKind,
 	AutomationDecisionTierPolicy
 } from './decisions';
+import type { OwnerSignalKind } from './types';
 
 export const AUTOMATION_DECISION_KINDS = [
 	'autoHandoff',
@@ -42,6 +43,28 @@ export const AUTOMATION_DECISION_POLICY = {
 	blocked: {
 		noOwnerAndWeakEvidenceBlocks: true,
 		highRiskWithoutValidationPathBlocks: true
+	},
+	owner: {
+		minLikelyOwnerConfidence: 0.75,
+		allowedValidationOwnerKinds: [
+			'accountOwner',
+			'opportunityOwner',
+			'proposalOwner',
+			'meetingAttendee',
+			'documentAuthor'
+		] as const satisfies readonly OwnerSignalKind[],
+		disallowedValidationOwnerKinds: [
+			'sourceUploader',
+			'unknown'
+		] as const satisfies readonly OwnerSignalKind[]
+	},
+	conflictResolution: {
+		allowFreshStrongOverStaleWeakerConflict: true,
+		minFreshnessGap: 0.25,
+		minConfidenceGap: 0.03
+	},
+	risk: {
+		highRiskThreshold: 0.7
 	}
 } as const;
 

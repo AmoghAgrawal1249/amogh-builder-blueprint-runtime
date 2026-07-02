@@ -47,6 +47,24 @@ describe('automation decision policy scaffold', () => {
 		expect(AUTOMATION_DECISION_POLICY.blocked.highRiskWithoutValidationPathBlocks).toBe(true);
 	});
 
+	it('keeps validation-owner policy explicit', () => {
+		expect(AUTOMATION_DECISION_POLICY.owner.minLikelyOwnerConfidence).toBeGreaterThanOrEqual(0);
+		expect(AUTOMATION_DECISION_POLICY.owner.minLikelyOwnerConfidence).toBeLessThanOrEqual(1);
+		expect(AUTOMATION_DECISION_POLICY.owner.allowedValidationOwnerKinds).toContain('documentAuthor');
+		expect(AUTOMATION_DECISION_POLICY.owner.disallowedValidationOwnerKinds).toContain('sourceUploader');
+		expect(AUTOMATION_DECISION_POLICY.owner.disallowedValidationOwnerKinds).toContain('unknown');
+	});
+
+	it('keeps fresh-strong conflict resolution narrow', () => {
+		expect(
+			AUTOMATION_DECISION_POLICY.conflictResolution.allowFreshStrongOverStaleWeakerConflict
+		).toBe(true);
+		expect(AUTOMATION_DECISION_POLICY.conflictResolution.minFreshnessGap).toBeGreaterThan(0);
+		expect(AUTOMATION_DECISION_POLICY.conflictResolution.minConfidenceGap).toBeGreaterThan(0);
+		expect(AUTOMATION_DECISION_POLICY.risk.highRiskThreshold).toBeGreaterThanOrEqual(0);
+		expect(AUTOMATION_DECISION_POLICY.risk.highRiskThreshold).toBeLessThanOrEqual(1);
+	});
+
 	it('recognizes supported decision kind strings', () => {
 		for (const kind of AUTOMATION_DECISION_KINDS) {
 			expect(isAutomationDecisionKind(kind)).toBe(true);

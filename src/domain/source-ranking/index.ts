@@ -1,3 +1,4 @@
+export * from './decide-automation';
 export * from './decision-policy';
 export * from './decisions';
 export * from './evidence';

@@ -44,7 +44,7 @@ export type AutoHandoffDecision = AutomationDecisionBase & {
 
 export type GenerateContextRequestDecision = AutomationDecisionBase & {
 	kind: 'generateContextRequest';
-	ownerSignalIds: readonly string[];
+	ownerIds: readonly string[];
 };
 
 export type NeedsUserReviewDecision = AutomationDecisionBase & {

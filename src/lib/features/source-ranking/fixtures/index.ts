@@ -457,14 +457,13 @@ export const sourceRankingFixtures: readonly EvidenceFixture[] = [
 				'source-acme-current-risk-cleared-note': 'strong',
 				'source-acme-old-proposal-timeline-risk': 'medium'
 			},
-			automationDecision: 'needsUserReview',
+			automationDecision: 'autoHandoff',
 			primarySourceIds: ['source-acme-current-risk-cleared-note'],
 			likelyOwnerIds: ['owner-sarah-chen', 'owner-priya-shah'],
 			validatedClaimIds: ['claim-acme-current-timeline-risk-cleared'],
-			weakClaimIds: ['claim-acme-old-proposal-timeline-risk'],
-			reviewPromptKind: 'unsupportedClaim',
+			weakClaimIds: [],
 			conflictingClaimKinds: ['implementationRisk'],
-			notes: ['A current note contradicts older proposal context, so the handoff claim needs review.']
+			notes: ['Fresh account-owner context can override older stale proposal context.']
 		}
 	},
 	{
